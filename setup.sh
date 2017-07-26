@@ -6,4 +6,4 @@ module load samtools
 module load htslib
 module load yaml
 
-mkdir prod local
+mkdir -p prod local
