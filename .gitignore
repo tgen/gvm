@@ -4,3 +4,7 @@ tags
 
 # vim
 .*.sw*
+
+# gdb
+.gdb_history
+.gdb_init
