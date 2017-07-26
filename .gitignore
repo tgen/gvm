@@ -1,3 +1,6 @@
 prod
 local
 tags
+
+# vim
+.*.sw*
