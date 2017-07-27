@@ -901,23 +901,6 @@ int is_split_read(bam1_t *bam)
 	return bam->core.tid != bam->core.mtid;
 }
 
-static
-int check_overlap_forward(bam1_t *bam)
-{
-	// reads on different chromosomes are not overlaps
-
-	if (is_split_read(bam)) return 0;
-
-	return bam->core.mpos < bam_endpos(bam);
-}
-
-static
-int check_overlap_reverse(bam1_t *bam)
-{
-	if (is_split_read(bam)) return 0;
-
-	return 0;
-}
 // }}}
 
 // Configuration reading {{{
