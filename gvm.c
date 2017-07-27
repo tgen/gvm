@@ -103,11 +103,6 @@ struct extra_data {
 };
 
 
-// BED file parsing {{{
-
-
-// }}}
-
 // Recording data from BAM {{{
 
 /* utility */
