@@ -5,5 +5,3 @@ module load gcc/5.1.0 # seems to prevent a very strange bug
 module load samtools
 module load htslib
 module load yaml
-
-mkdir -p prod local
