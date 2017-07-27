@@ -45,5 +45,4 @@ Makefile.in
 
 config.log
 config.status
-config.h.in~
-config.h
+config.h*
