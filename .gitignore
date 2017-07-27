@@ -1,6 +1,8 @@
-prod
-local
+*
+!*.*
+
 tags
+*.o
 
 # vim
 .*.sw*
@@ -8,3 +10,39 @@ tags
 # gdb
 .gdb_history
 .gdbinit
+
+
+## autotools (thanks to https://github.com/github/gitignore/blob/master/Autotools.gitignore)
+
+/.deps
+
+# http://www.gnu.org/software/automake
+
+Makefile.in
+/ar-lib
+/mdate-sh
+/py-compile
+/test-driver
+/ylwrap
+
+# http://www.gnu.org/software/autoconf
+
+/autom4te.cache
+/autoscan.log
+/autoscan-*.log
+/aclocal.m4
+/compile
+/config.guess
+/config.h.in
+/config.sub
+/configure
+/configure.scan
+/depcomp
+/install-sh
+/missing
+/stamp-h1
+
+config.log
+config.status
+config.h.in~
+config.h
