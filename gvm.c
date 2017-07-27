@@ -5,6 +5,8 @@
 #include <signal.h>
 #include <assert.h>
 
+#include <config.h>
+
 #include "yaml.h"
 
 #include "uthash.h"
@@ -1311,7 +1313,8 @@ int main(int argc, char *argv[]) // {{{
 
 	// Command line settings {{{
 	if (argc < 3) {
-		err_printf("usage: %s <config.yaml> <region>\n", argv[0]);
+		fprintf(stderr, PACKAGE_STRING "\n");
+		fprintf(stderr, "usage: %s <config.yaml> <region>\n", argv[0]);
 		return EXIT_FAILURE;
 	}
 
