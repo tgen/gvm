@@ -16,23 +16,26 @@ Make sure to use `--recursive` when cloning.
 
 I use gcc 5.1. Older versions create issues, newer ones probably won''t.
 
+To build, run:
+
 ```
 $ ./setup.sh
 $ make
 ```
 
-and hope nothing goes wrong.
+and hope nothing goes wrong. This will place an executable in the `prod` directory.
 
 ### Running
 
-Use your LumosVar `conf.yaml` here too. The executable will be placed in the `prod`
-directory.
+To run:
 
 ```
-$ prod/gvm conf.yaml <chromosome>
+$ ./prod/gvm conf.yaml <chromosome>
 ```
 
 This will generate the pos and exon files and name them as per the config file.
+
+Use the same config you use for LumosVar.
 
 ### Warning
 
