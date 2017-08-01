@@ -805,7 +805,7 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 static inline
 int get_delete_size(struct variant_counts *vc)
 {
-	if (vc == NULL) return 1;
+	if (vc == NULL) return -1;
 
 	return vc->report.align_type == at_del ? vc->report.size : 0;
 }
