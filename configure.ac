@@ -6,6 +6,8 @@ AC_INIT([gvm], [0.1], [skulkarni@tgen.org])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS([config.h])
 
+: ${CFLAGS=""}
+
 # Checks for programs.
 AC_PROG_CC
 

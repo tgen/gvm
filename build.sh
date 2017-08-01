@@ -1,3 +1,6 @@
 #!/usr/bin/env bash
 
-autoreconf --install
+autoreconf --install && \
+cd build && \
+../configure && \
+make

@@ -18,7 +18,7 @@ module load yaml
 module load samtools
 module load htslib
 
-export GVM_EXEC=$PWD/gvm
+export GVM_EXEC=$PWD/build/gvm
 
 export SC="/scratch/skulkarni"
 export PERL5LIB="$PERL5LIB:/home/rhalperin/perl5lib/lib"
