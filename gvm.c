@@ -1165,7 +1165,7 @@ void write_exon_line(struct context *context, uint32_t start, uint32_t end)
 }
 
 static
-int do_region(struct context *context, uint32_t start, uint32_t end)
+int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 {
 	verbose_fprintf(stderr, "--- region:  %d  to  %d  \n", start, end);
 
@@ -1294,7 +1294,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end)
 	//fflush(context->pos_file);
 
 	return 1;
-}
+} // }}}
 
 int main(int argc, char *argv[]) // {{{
 {
