@@ -1,6 +1,8 @@
 *
 !*.*
 
+!build
+
 tags
 *.o
 
