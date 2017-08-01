@@ -815,32 +815,45 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 {
 	uint32_t sample_idx;
 	struct variant_table *vtable;
-	struct variant_counts *counts, *tmp;
+	struct variant_counts *counts, *tmp, *a, *b;
 
-	int max_delete_size = 0, cur_delete_size;
-	int has_enough = 0, is_enough;
+	int max_delete_size = 0, max_of_ab;
+	int has_enough = 0;
 
 	for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 		HASH_FIND_INT(context->bmi->itr_list[sample_idx].vtable, &offset, vtable);
 		if (vtable == NULL) continue;
 
+
+		find_ab(vtable, &a, &b);
+		max_of_ab = MAX(get_delete_size(a), get_delete_size(b));
+		if (max_of_ab > max_delete_size) max_delete_size = max_of_ab;
+
 		HASH_ITER(hh, vtable->counts, counts, tmp) {
-			// Remember, count_f + count_r is TWICE the actual count
-			is_enough =
-				counts->count_f + counts->count_r >= 2 * settings.min_variants;
-
-			if (!is_enough) continue;
-
-			cur_delete_size = get_delete_size(counts);
-
-			if (cur_delete_size > max_delete_size) {
-				max_delete_size = cur_delete_size;
-			}
-			
-			if (is_mismatch(counts->report, context->ref_seq_info)) {
+			if (is_mismatch(counts->report, context->ref_seq_info) &&
+					counts->count_f + counts->count_r >=
+						2 * settings.min_variants) {
 				has_enough = 1;
 			}
 		}
+
+	//	HASH_ITER(hh, vtable->counts, counts, tmp) {
+	//		// Remember, count_f + count_r is TWICE the actual count
+	//		is_enough =
+	//			counts->count_f + counts->count_r >= 2 * settings.min_variants;
+
+	//		if (!is_enough) continue;
+
+	//		cur_delete_size = get_delete_size(counts);
+
+	//		if (cur_delete_size > max_delete_size) {
+	//			max_delete_size = cur_delete_size;
+	//		}
+	//		
+	//		if (is_mismatch(counts->report, context->ref_seq_info)) {
+	//			has_enough = 1;
+	//		}
+	//	}
 	}
 
 	return has_enough ? max_delete_size : -1;
