@@ -547,11 +547,11 @@ void find_ab(struct variant_table *vtable, struct variant_counts **a, struct var
 
 	uint32_t biggest = 0, second_biggest = 0;
 
-	//if (vtable->a_cache != NULL && vtable->b_cache != NULL) {
-	//	*a = vtable->a_cache;
-	//	*b = vtable->b_cache;
-	//	return;
-	//}
+	if (vtable->a_cache != NULL && vtable->b_cache != NULL) {
+		*a = vtable->a_cache;
+		*b = vtable->b_cache;
+		return;
+	}
 
 	*a = NULL;
 	*b = NULL;
@@ -569,8 +569,8 @@ void find_ab(struct variant_table *vtable, struct variant_counts **a, struct var
 		}
 	}
 
-	//vtable->a_cache = *a;
-	//vtable->b_cache = *b;
+	vtable->a_cache = *a;
+	vtable->b_cache = *b;
 }
 
 static
