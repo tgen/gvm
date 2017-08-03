@@ -1,6 +1,6 @@
 #### Input Files
 bamList: /home/skulkarni/programs/gvm/bamlists/bamlist2
-sampleNames: SAMPLENAMES
+sampleNames: CONTROL,TUMOR
 regionsFile: /home/tgenref/pecan/annotations/exome_capture/Agilent_SureSelect_V5_plusUTR/Agilent_SureSelect_V5_plusUTR_hs37d5_GRCh37.74_PaddedTargets_intersect_sorted_padded100.bed
 snpVCFpath: /home/rhalperin/reference/ALL.chr
 snpVCFname: .phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
