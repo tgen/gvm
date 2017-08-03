@@ -687,8 +687,8 @@ void dump_variant_info(	struct context *context,
 			read,
 			(double) vc->count_f / 2,
 			(double) vc->count_r / 2,
-			(double) vc->total_mq / total,
 			(double) vc->total_bq / total,
+			(double) vc->total_mq / total,
 			vc->total_pmm / total,
 			(double) vc->total_read_pos / total);
 #undef VARIANT_TYPE_FORMAT
