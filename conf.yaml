@@ -19,7 +19,7 @@ outMat: /scratch/skulkarni/$OUTFILE_mat
 #### Dependency Paths
 samPath: /home/rhalperin/bin/samtools-1.2/
 tabixPath: /home/rhalperin/bin/htslib-1.2.1/
-workingDirectory: /home/rhalperin/scripts/multiSampleCaller
+workingDirectory: /home/skulkarni/programs/multiSampleCaller
 
 #### Model Parameters
 NormalSample: 2                           ### position in bamList of normal sample, 0 indicates tumor only
