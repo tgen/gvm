@@ -196,9 +196,11 @@ void bmi_ensure(struct bam_multi_itr *bmi)
 
 		result = sam_itr_next(s.f, s.itr, s.buf);
 
+#ifdef HTS_HAS_ENHANCED_ENDPOS
 		// this check is here to make sure the endpos cache is being cleared.
 		// I am NOT checking that the read's end position is zero.
 		assert(s.buf->core.endpos == 0);
+#endif
 
 		if (result == -1) {
 			bmi->num_done++;
