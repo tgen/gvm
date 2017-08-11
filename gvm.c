@@ -1043,7 +1043,7 @@ int config_read(const char *cfg_fn, struct settings *s)
 	char value_buf[1024];
 
 	if (f == NULL) {
-		err_printf("could not open config %s: \n", cfg_fn);
+		err_printf("could not open config %s: ", cfg_fn);
 		perror("");
 		return 0;
 	}
