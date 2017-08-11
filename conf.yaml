@@ -22,7 +22,7 @@ tabixPath: /home/rhalperin/bin/htslib-1.2.1/
 workingDirectory: /home/skulkarni/programs/multiSampleCaller
 
 #### Model Parameters
-NormalSample: 2                           ### position in bamList of normal sample, 0 indicates tumor only
+NormalSample: 1                           ### position in bamList of normal sample, 0 indicates tumor only
 minStartDiff: 0.1                         ### determines number of clonal fraction starting points tested, lower favors more starting points
 addCloneWeight: 5                         ### determines size of change in nll to add a clone, higher favors more clones
 priorF: [0.01;0.5]                            ### expected clonal fraction
