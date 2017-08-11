@@ -2,7 +2,6 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include <assert.h>
 
 #include <config.h>
