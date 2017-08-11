@@ -490,6 +490,7 @@ int calc_alignments(struct context *context, reporter_func rfunc)
 
 // Result reporting {{{
 
+// TODO: do this properly
 static
 int chr2idx(const char *chrname)
 {
