@@ -1242,23 +1242,22 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		context->bam = mbam;
 		context->mbam = bam;
 
+#define GVM_CHECK_RESULT(R) \
+			if (R < 0) { \
+				err_printf("failed to calculate alignments (err code %d)\n", R); \
+				return EXIT_FAILURE; \
+			}
+
 		if (mbam != NULL) {
 			result = calc_alignments(context, record_match);
-
-			if (result < 0) {
-				err_printf("failed to calculate alignments (err code %d)\n", result);
-				return EXIT_FAILURE;
-			}
+			GVM_CHECK_RESULT(result);
 		}
 
 		context->bam = bam;
 		context->mbam = mbam;
 
 		result = calc_alignments(context, record_match);
-		if (result < 0) {
-			err_printf("failed to calculate alignments (err code %d)\n", result);
-			return EXIT_FAILURE;
-		}
+		GVM_CHECK_RESULT(result);
 
 		if (mbam != NULL) {
 			bam_destroy1(mbam);
@@ -1282,6 +1281,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		bmt_print(bmt);
 	}
 #endif
+#undef GVM_CHECK_RESULT
 
 	bmt_destroy(bmt);
 	nm_tbl_destroy(context->nmt);
