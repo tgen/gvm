@@ -231,9 +231,7 @@ void record_match(	struct context *context,
 	}
 	
 	vtentry->read_count++;
-	// if (rep.pos == 14690 && ( mq < settings.min_mq || bq < settings.min_bq )) {
-	//	printf("REJECTING A 14690 FROM SI=%d (bq: %d,  mq: %d) is_olap=%d\n", sample_index, bq, mq, is_overlap);
-	// }
+
 	if (mq >= settings.min_mq && bq >= settings.min_bq) {
 
 		vtentry->read_count_pass++;
