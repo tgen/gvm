@@ -1175,7 +1175,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	int result;
 
 	uint32_t flush_timer;
-	struct bam_mate_table *bmt = NULL;
+	struct bam_mate_table *bmt = NULL, *left_behind, *tmp;
 	int32_t sample_index, begin_offset, end_offset, 
 		global_end_offset, last_known_min;
 
@@ -1266,6 +1266,14 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	}
 	// }}}
 
+	context->mbam = NULL;
+	HASH_ITER(hh, bmt, left_behind, tmp) {
+		context->bam = left_behind->bam;
+		//printf("Running a forgotten BAM (pos=%d) from SI=%d\n", context->bam->core.pos, context->sample_index);
+		result = calc_alignments(context, record_match);
+		GVM_CHECK_RESULT(result);
+	}
+
 	begin_offset = last_known_min;
 	end_offset = global_end_offset;
 	flush_results(context, begin_offset, end_offset + 1);
@@ -1273,14 +1281,6 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	
 	write_exon_line(context, start, end);
 
-#ifdef DEBUG
-	int remaining = HASH_COUNT(bmt);
-	if (remaining > 0) {
-		fprintf(stderr, "Reached the end, yet have %d remaining in the mate table\n",
-				remaining);
-		bmt_print(bmt);
-	}
-#endif
 #undef GVM_CHECK_RESULT
 
 	bmt_destroy(bmt);
