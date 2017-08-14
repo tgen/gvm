@@ -139,7 +139,7 @@ int nm_tbl_add(struct nm_tbl *nmt, struct nm_entry ent)
 int nm_tbl_slurp(struct nm_tbl *nmt, struct nm_itr *nmi)
 {
 	assert(nmi->itr != NULL /* Need to call nm_query before nm_tbl_slurp */);
-	struct nm_entry ent;
+	struct nm_entry ent = {0};
 	while (nm_parse_next(nmi, &ent) >= 0) {
 		int res = nm_tbl_add(nmt, ent);
 		if (res != 1) return res;
