@@ -414,10 +414,6 @@ int calc_alignments(struct context *context, reporter_func rfunc)
 {
 	bam1_t *bam = context->bam;
 
-	// VERBOSE if (mbam != NULL) {
-	// VERBOSE	printf("F: pos=%d mate=%d end=%d\n", bam->core.pos, bam->core.mpos, bam_endpos(bam));
-	// VERBOSE	printf("R: pos=%d mate=%d end=%d\n", mbam->core.pos, mbam->core.mpos, bam_endpos(mbam));
-	// VERBOSE }
 	uint32_t offset = bam->core.pos + 1;
 
 	uint32_t cigar_len = bam->core.n_cigar;
