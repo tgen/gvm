@@ -24,11 +24,15 @@ export CONF=/home/skulkarni/programs/gvm/conf.yaml
 
 export JOBNUM=$(cut -f1 -d. <<<$PBS_JOBID | sed 's:\[.\+\?\]::')
 
-mkdir $SC/$JOBNUM
+SCDIR=$SC/$JOBNUM
 
-sed "s/\\\$OUTFILE/$JOBNUM\/out/g" $CONF > $SC/$JOBNUM/conf.yaml
+mkdir $SCDIR
+rm $SC/latest
+ln -s $SCDIR $SC/latest
 
-touch $SC/$JOBNUM/still_running_chr$CHR
-$GVM_EXEC $SC/$JOBNUM/conf.yaml $CHR
-rm $SC/$JOBNUM/still_running_chr$CHR
+sed "s/\\\$OUTFILE/$JOBNUM\/out/g" $CONF > $SCDIR/conf.yaml
+
+touch $SCDIR/still_running_chr$CHR
+perf stat $GVM_EXEC $SCDIR/conf.yaml $CHR
+rm $SCDIR/still_running_chr$CHR
 
