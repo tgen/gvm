@@ -1209,7 +1209,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 			if (end_offset > 0) {
 				begin_offset = last_known_min;
 
-				flush_results(context, begin_offset, end_offset);
+				//flush_results(context, begin_offset, end_offset);
 
 #if defined( DEBUG ) && defined( DEBUG_VERBOSE )
 				if (end_offset == begin_offset) {
@@ -1265,14 +1265,13 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	context->mbam = NULL;
 	HASH_ITER(hh, bmt, left_behind, tmp) {
 		context->bam = left_behind->bam;
-		//printf("Running a forgotten BAM (pos=%d) from SI=%d\n", context->bam->core.pos, context->sample_index);
 		result = calc_alignments(context, record_match);
 		GVM_CHECK_RESULT(result);
 	}
 
 	begin_offset = last_known_min;
 	end_offset = global_end_offset;
-	flush_results(context, begin_offset, end_offset + 1);
+	flush_results(context, start, end + 1);
 	// It should be empty now!
 	
 	write_exon_line(context, start, end);
