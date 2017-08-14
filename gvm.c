@@ -203,7 +203,7 @@ void record_match(	struct context *context,
 
 	mq = bam->core.qual;
 	bq = bam_get_qual(bam)[rep.spos];
-	
+
 	if (mbam != NULL) {
 		// We are dealing with a read pair
 		int double_count = modify_overlap_quals(bam, mbam, rep, &mq, &bq, &is_overlap);
