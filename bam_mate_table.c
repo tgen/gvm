@@ -29,12 +29,15 @@ struct bam_mate_table *bmt_register(	struct bam_mate_table *bmt,
 		*cont = 0;
 	} else {
 		if (bam->core.mpos + MAX_READ_SIZE < bam->core.pos) {
+			*cont = 0;
 			return bmt;
 		}
 
 		if (bam->core.pos + MAX_READ_SIZE < bam->core.mpos) {
+			*cont = 0;
 			return bmt;
 		}
+
 		if (bam_is_rev(bam)) {
 			// Either:
 			//  * we've seen the forward strand and didn't want to pair
