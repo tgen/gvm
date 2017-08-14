@@ -1367,13 +1367,15 @@ int main(int argc, char *argv[]) // {{{
 
 	result = bcf_sr_add_reader(context.bcf_reader, snp_vcf_fname);
 	if (result == 0) {
-		err_printf("failed to load SNP VCF\n");
+		err_printf("failed to load SNP VCF: %s\n", snp_vcf_fname);
+		err_printf("errnum = %d\n", context.bcf_reader->errnum);
 		return EXIT_FAILURE;
 	}
 
 	result = bcf_sr_add_reader(context.bcf_reader, settings.cosm_vcf_path);
 	if (result == 0) {
-		err_printf("failed to load cosmic VCF\n");
+		err_printf("failed to load cosmic VCF: %s\n", settings.cosm_vcf_path);
+		err_printf("errnum = %d\n", context.bcf_reader->errnum);
 		return EXIT_FAILURE;
 	}
 
