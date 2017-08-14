@@ -1059,7 +1059,7 @@ int config_read(const char *cfg_fn, struct settings *s)
 	/* START new code */
 	do {
 		if (!yaml_parser_parse(&parser, &event)) {
-			printf("Parser error %d\n", parser.error);
+			err_printf("Parser error %d\n", parser.error);
 			result = 0;
 			goto done1;
 		}
