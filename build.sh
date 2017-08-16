@@ -5,7 +5,7 @@ set -e
 
 source ./setup.sh
 
-rebuild=
+init=
 debug=
 makeflags=
 
@@ -16,7 +16,7 @@ badopt() {
 while true
 do
 	case $1 in
-		--rebuild | -r ) rebuild=1 ; shift  ;;
+		--init | -i ) init=1 ; shift  ;;
 		--debug | -d ) debug=1 ; shift ;;
 		--clean ) clean=1 ; shift ;;
 		"" ) break ;;
@@ -25,7 +25,7 @@ do
 	esac
 done
 
-if [[ $rebuild ]]
+if [[ $init ]]
 then
 	autoreconf --install
 	cd build
