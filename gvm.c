@@ -1414,7 +1414,11 @@ int main(int argc, char *argv[]) // {{{
 	}
 	// }}}
 	
-	bedf_forall_region_chr(&context, settings.bed_file, settings.chromosome, do_region);
+	bedf_forall_region_chr(
+			&context,
+			settings.bed_file,
+		       	settings.chromosome, 
+			(region_handle_func) do_region);
 
 	// Cleanup {{{
 

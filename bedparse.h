@@ -8,7 +8,7 @@
 
 struct context;
 
-typedef int (*region_handle_func)(struct context *, uint32_t start, uint32_t end);
+typedef int (*region_handle_func)(void *, uint32_t start, uint32_t end);
 
 int bedf_read_single(	FILE *bedf,
 			char *chr,
@@ -16,7 +16,7 @@ int bedf_read_single(	FILE *bedf,
 			uint32_t *start,
 			uint32_t *end );
 
-int bedf_forall_region_chr(	struct context *context,
+int bedf_forall_region_chr(	void *context,
 				const char *bed_fn, 
 				const char *chromosome,
 				region_handle_func reg_func );

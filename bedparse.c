@@ -19,7 +19,7 @@ int bedf_read_single(	FILE *bedf,
 
 }
 
-int bedf_forall_region_chr(	struct context *context,
+int bedf_forall_region_chr(	void *context,
 				const char *bed_fn, 
 				const char *chromosome,
 				region_handle_func reg_func )
