@@ -1170,12 +1170,10 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	int result;
 
-	uint32_t flush_timer;
 	struct bam_mate_table *bmt = NULL, *left_behind, *tmp;
-	int32_t sample_index, begin_offset, end_offset, 
-		global_end_offset, last_known_min;
+	int32_t sample_index;
 
-	bam1_t *bam, *mbam, *min_bam;
+	bam1_t *bam, *mbam;
 
 	context->nmt = nm_tbl_create();
 
@@ -1185,47 +1183,9 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	nm_query(context->nmi, start - 1, end);
 	nm_tbl_slurp(context->nmt, context->nmi);
 
-	global_end_offset = bmi_get_end(bmi);
-	begin_offset = bmi_get_begin(bmi);
-	last_known_min = begin_offset;
-	flush_timer = 0;
-
 	// Main processing loop {{{
 	while ( (sample_index = bmi_next(bmi, &bam)) >= 0 ) {
 		if (!check_flags(bam)) continue;
-		flush_timer++;
-
-		//printf("%d %d", bam->core.pos, bam->core.mpos);
-		//bmt_print(bmt);
-
-		if (last_known_min == -1) {
-			last_known_min = bmt_get_min_offset(bmt);;
-		}
-
-		if (last_known_min > 0 && flush_timer >= 100) {
-			flush_timer = 0;
-			min_bam = bmt_get_min(bmt);
-			end_offset = min_bam ? min_bam->core.pos : -1;
-			if (end_offset > 0) {
-				begin_offset = last_known_min;
-
-				//flush_results(context, begin_offset, end_offset);
-
-#if defined( DEBUG ) && defined( DEBUG_VERBOSE )
-				if (end_offset == begin_offset) {
-					bmt_print(bmt);
-					printf("STUCK!\n");
-				}
-#endif
-
-
-				last_known_min = end_offset;
-				//assert(min_bam->core.mpos >= bam->core.pos /* this is bad */);
-			}
-
-		}
-		
-		// VERBOSE printf("lmm=%d\n", last_known_min);
 
 		mbam = NULL;
 
@@ -1269,8 +1229,6 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		GVM_CHECK_RESULT(result);
 	}
 
-	begin_offset = last_known_min;
-	end_offset = global_end_offset;
 	flush_results(context, start, end + 1);
 	// It should be empty now!
 	
