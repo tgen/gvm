@@ -528,7 +528,7 @@ int cmp_vcounts(struct variant_counts *a, struct variant_counts *b)
 	return (a->count_f + a->count_r) - (b->count_f + b->count_r);
 }
 
-static
+static __attribute__((unused))
 void sort_vcounts(struct variant_table *vtable)
 {
 	HASH_SORT(vtable->counts, cmp_vcounts);
