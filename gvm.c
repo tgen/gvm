@@ -20,6 +20,7 @@
 #include "nmparse.h"
 #include "bedparse.h"
 #include "report.h"
+#include "cigar.h"
 #include "bam_multi_itr.h"
 #include "bam_mate_table.h"
 
@@ -311,177 +312,6 @@ void report_aggregate(	struct context *context,
 	}
 }
 
-
-// }}}
-
-// CIGAR string processor {{{
-// returns negative on error, otherwise if not
-static
-int run_cigar(	struct context *context,
-		uint32_t cigar_op, uint32_t cigar_nextop,
-		uint32_t *base_offset,
-		uint32_t *seq_index,
-		reporter_func rfunc,
-		void *extra_data)
-{
-
-	bam1_t *bam = context->bam;
-	uint32_t op_type, len, next_op_type;
-	uint8_t *seq_data = bam_get_seq(bam);
-
-	struct alignment_report report;
-	memset(&report, 0, sizeof(report));
-
-
-	op_type = bam_cigar_op(cigar_op);
-	len = bam_cigar_oplen(cigar_op);
-	next_op_type = bam_cigar_op(cigar_nextop);
-
-	switch(op_type) {
-	case BAM_CDEL:
-		report.align_type = at_del;
-		report.pos = *base_offset - 1;
-		report.spos = *seq_index - 1;
-		report.data = int_to_b5base(bam_seqi(seq_data, *seq_index));
-		report.size = len;
-		rfunc(context, report, extra_data);
-		*base_offset += len;
-		break;
-	case BAM_CINS:
-		report.align_type = at_ins;
-		report.pos = *base_offset - 1;
-		report.size = len;
-
-		if (*seq_index == 0) {
-			report.spos = 0;
-			report.data = char_to_b5base(ref_seq_get(context->ref_seq_info, report.pos));
-		} else {
-			report.spos = *seq_index - 1;
-			report.data = int_to_b5base(bam_seqi(seq_data, report.spos));
-		}
-
-		if (len + 1 > INDEL_REPR_LEN_CUTOFF) {
-			report.data = INDEL_REPR_CUTOFF + len + 1;
-		} else {
-			report.data = collect_seqi(seq_data, report.spos + 1, len, report.data);
-		}
-
-		rfunc(context, report, extra_data);
-		*seq_index += len;
-		break;
-	case BAM_CMATCH: case BAM_CEQUAL: case BAM_CDIFF:
-		report.align_type = at_single;
-		while (len-- > 0) {
-			report.pos = *base_offset;
-			report.spos = *seq_index;
-			report.data = int_to_b5base(bam_seqi(seq_data, *seq_index));
-			report.size = 1;
-			if (len == 0 && (next_op_type == BAM_CINS || next_op_type == BAM_CDEL)) {
-				// skip
-			} else {
-				rfunc(context, report, extra_data);
-			}
-			(*base_offset)++;
-			(*seq_index)++;
-		}
-		break;
-	case BAM_CSOFT_CLIP:
-		*seq_index += len;
-		//*base_offset += len+2;
-		break;
-	case BAM_CHARD_CLIP:
-		*base_offset += len;
-		break;
-	case BAM_CBACK:
-		// I can't find any documentation on this cigar op so I'm
-		// just going to report it as an error.
-		return -1;
-	}
-
-	return 0;
-
-}
-
-// }}}
-
-// Alignment calculation {{{
-
-/* This function is passed ONE alignment and reports each allele with its
- * position to the reporter function.
- */
-static
-int calc_alignments(struct context *context, reporter_func rfunc)
-{
-	bam1_t *bam = context->bam;
-
-	uint32_t offset = bam->core.pos + 1;
-
-	uint32_t cigar_len = bam->core.n_cigar;
-	if (cigar_len == 0) return 0;
-
-	uint32_t *cigar_data = (uint32_t *) bam_get_cigar(bam);
-	uint32_t *cigar_ptr;
-	uint32_t cigar_nextop;
-
-	uint32_t seq_index = 0;
-
-	int result = 0;
-
-	uint32_t i;
-
-	struct extra_data extra_data;
-
-	uint32_t offset_backup, seq_index_backup;
-
-	for (cigar_ptr = cigar_data, i = 0; i < cigar_len; i++, cigar_ptr++) {
-		/* I need to run the run_cigar function twice- first time to calculate the
-		 * pmm, next time to actually report all the matches. Therefore, these two
-		 * values need to be backed up */
-
-		if (i < cigar_len - 1) {
-			cigar_nextop = *(cigar_ptr + 1);
-		} else {
-			cigar_nextop = 0;
-		}
-
-		extra_data.mm_count = 0;
-		extra_data.total_softclip = 0;
-
-		offset_backup = offset;
-		seq_index_backup = seq_index;
-
-		result = run_cigar(
-			context,
-			*cigar_ptr, cigar_nextop,
-			&offset,          /* modified, needs backup */
-			&seq_index,       /* modified, needs backup */
-			report_aggregate, /* Alternate report function */
-			&extra_data       /* modified, no backup */
-		);
-
-		/* Restore the backups */
-		seq_index = seq_index_backup;
-		offset = offset_backup;
-
-		result = run_cigar(
-			context,
-			*cigar_ptr, cigar_nextop,
-			&offset, /* base */
-			&seq_index,
-			rfunc,
-			&extra_data
-		);
-
-
-
-		if (result == -1) {
-			err_printf("An error was encountered while running the cigar string\n");
-			break;
-		}
-	}
-
-	return result;
-}
 // }}}
 
 // Result reporting {{{
@@ -1173,6 +1003,8 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	struct bam_mate_table *bmt = NULL, *left_behind, *tmp;
 	int32_t sample_index;
 
+	struct extra_data ed = {0};
+
 	bam1_t *bam, *mbam;
 
 	context->nmt = nm_tbl_create();
@@ -1198,21 +1030,34 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		context->bam = mbam;
 		context->mbam = bam;
 
+
+#define GVM_CALL_CALC_ALIGN(R) \
+	do { \
+		R = calc_alignments( \
+				context->bam, \
+				context->ref_seq_info, \
+				record_match, \
+				report_aggregate, \
+				context, \
+				&ed); \
+	} while (0)
+
 #define GVM_CHECK_RESULT(R) \
-			if (R < 0) { \
-				err_printf("failed to calculate alignments (err code %d)\n", R); \
-				return EXIT_FAILURE; \
-			}
+	if (R < 0) { \
+		err_printf("failed to calculate alignments (err code %d)\n", R); \
+		return EXIT_FAILURE; \
+	}
+
 
 		if (mbam != NULL) {
-			result = calc_alignments(context, record_match);
+			GVM_CALL_CALC_ALIGN(result);
 			GVM_CHECK_RESULT(result);
 		}
 
 		context->bam = bam;
 		context->mbam = mbam;
 
-		result = calc_alignments(context, record_match);
+		GVM_CALL_CALC_ALIGN(result);
 		GVM_CHECK_RESULT(result);
 
 		if (mbam != NULL) {
@@ -1225,7 +1070,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	context->mbam = NULL;
 	HASH_ITER(hh, bmt, left_behind, tmp) {
 		context->bam = left_behind->bam;
-		result = calc_alignments(context, record_match);
+		GVM_CALL_CALC_ALIGN(result);
 		GVM_CHECK_RESULT(result);
 	}
 
@@ -1234,6 +1079,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	
 	write_exon_line(context, start, end);
 
+#undef GVM_CALL_CALC_ALIGN
 #undef GVM_CHECK_RESULT
 
 	bmt_destroy(bmt);
