@@ -15,12 +15,16 @@ void bmi_cleanup(struct bam_multi_itr *bmi)
 {
 	int i;
 	bmi->num_done = 0;
+
+	struct bam_single_itr *s;
+
 	for (i = 0; i < bmi->num_iters; i++) {
-		hts_itr_destroy(bmi->itr_list[i].itr);
-		bmi->itr_list[i].itr = NULL;
-		destroy_variant_table(bmi->itr_list[i].vtable);
-		bmi->itr_list[i].vtable = NULL;
-		bmi->itr_list[i].used = 1;
+		s = &bmi->itr_list[i];
+		if (s->itr) hts_itr_destroy(s->itr);
+		s->itr = NULL;
+		destroy_variant_table(s->vtable);
+		s->vtable = NULL;
+		s->used = 1;
 	}
 
 }
@@ -31,11 +35,13 @@ void bmi_destroy(struct bam_multi_itr *bmi)
 
 	bmi_cleanup(bmi);
 
+	struct bam_single_itr *s;
 	for (i = 0; i < bmi->num_iters; i++) {
-		hts_idx_destroy(bmi->itr_list[i].idx);
-		bam_hdr_destroy(bmi->itr_list[i].hdr);
-		if (bmi->itr_list[i].f) sam_close(bmi->itr_list[i].f);
-		bam_destroy1(bmi->itr_list[i].buf);
+		s = &bmi->itr_list[i];
+		if (s->idx) hts_idx_destroy(s->idx);
+		if (s->hdr) bam_hdr_destroy(s->hdr);
+		if (s->f) sam_close(s->f);
+		if (s->buf) bam_destroy1(s->buf);
 	}
 
 	free(bmi->itr_list);
@@ -75,7 +81,7 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 	bmi = malloc(sizeof(struct bam_multi_itr));
 	if (bmi == NULL) {
 		err_printf("failed to allocate memory\n");
-		goto fail;
+		goto fail_already_clean;
 	}
 	
 	bmi->num_iters = count;
@@ -83,7 +89,10 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 	bmi->itr_list = calloc(count, sizeof(struct bam_single_itr));
 	if (bmi->itr_list == NULL) {
 		err_printf("failed to allocate memory\n");
-		goto fail;
+		// We can just free bmi and call it a day because nothing else
+		// has been allocated
+		free(bmi);
+		goto fail_already_clean;
 	}
 
 	i = 0;
