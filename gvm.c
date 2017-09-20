@@ -282,7 +282,10 @@ void record_match(	struct context *context,
 		vcounts->total_mq += mq;
 		vcounts->total_bq += bq;
 		vcounts->total_read_pos += rep.spos;
+
+		assert(mm_count <= bam->core.l_qseq);
 		vcounts->total_pmm += (double) mm_count / bam->core.l_qseq;
+
 
 		vtentry->counts = vcounts_table;
 
