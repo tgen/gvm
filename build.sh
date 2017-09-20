@@ -7,7 +7,9 @@ source ./setup.sh
 
 init=
 debug=
+scan=
 makeflags=
+makepreamble=
 
 badopt() {
 	echo "Bad option: $1" >&2
@@ -19,6 +21,7 @@ do
 		--init | -i ) init=1 ; shift  ;;
 		--debug | -d ) debug=1 ; shift ;;
 		--clean ) clean=1 ; shift ;;
+		--scan ) scan=1 ; shift ;;
 		"" ) break ;;
 		-- ) shift ; break ;;
 		* ) badopt $1; exit 1 ;;
@@ -37,6 +40,8 @@ fi
 if [[ $debug ]]
 then
 	makeflags="$makeflags CFLAGS=\"-O0 -DDEBUG\""
+else
+	makeflags="$makeflags CFLAGS=\"-DNDEBUG\""
 fi
 
 if [[ $clean ]]
@@ -44,4 +49,9 @@ then
 	makeflags="$makeflags clean"
 fi
 
-eval "make $makeflags"
+if [[ $scan ]]
+then
+	makepreamble="scan-build "
+fi
+
+eval "${makepreamble}make $makeflags"
