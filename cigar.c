@@ -184,7 +184,7 @@ int calc_alignments(	bam1_t *bam,
 			&seq_index,
 			rfunc,
 			context,
-			&extra_data
+			extra_data
 		);
 
 
