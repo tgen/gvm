@@ -4,5 +4,5 @@ gvm_SOURCES = bam_macro_funcs.h bam_multi_itr.h bedparse.h nmparse.h utils.h bam
 BASE_FLAGS = -Wall -Wextra -pedantic --std=c11
 
 gvm_CFLAGS = $(BASE_FLAGS) -g -O3 
-gvm_CPPFLAGS = -DNDEBUG -DHASH_FUNCTION=HASH_BER -I@abs_top_srcdir@/lib/uthash/src/ 
+gvm_CPPFLAGS = -DHASH_FUNCTION=HASH_BER -I@abs_top_srcdir@/lib/uthash/src/ 
 
