@@ -302,11 +302,13 @@ void report_aggregate(	struct context *context,
 			struct alignment_report rep, 
 			void *extra_data_p)
 {
+
 	struct extra_data *extra_data = extra_data_p;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
 	/* check if this is a mismatch */
-	if (is_mismatch(rep, ref_seq_info)) {
+	int is_mm = is_mismatch(rep, ref_seq_info);
+	if (is_mm) {
 		extra_data->mm_count += rep.size;
 	}
 
@@ -1006,7 +1008,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	struct bam_mate_table *bmt = NULL, *left_behind, *tmp;
 	int32_t sample_index;
 
-	struct extra_data ed = {0};
+	struct extra_data ed;
 
 	bam1_t *bam, *mbam;
 
@@ -1036,6 +1038,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 #define GVM_CALL_CALC_ALIGN(R) \
 	do { \
+		memset(&ed, 0, sizeof(ed)); \
 		R = calc_alignments( \
 				context->bam, \
 				context->ref_seq_info, \
