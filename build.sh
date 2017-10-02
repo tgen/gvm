@@ -10,6 +10,7 @@ debug=
 scan=
 makeflags=
 makepreamble=
+cflags=
 
 badopt() {
 	echo "Bad option: $1" >&2
@@ -39,10 +40,12 @@ fi
 
 if [[ $debug ]]
 then
-	makeflags="$makeflags CFLAGS=\"-O0 -DDEBUG\""
+	cflags="-O0 -DDEBUG"
 else
-	makeflags="$makeflags CFLAGS=\"-DNDEBUG\""
+	cflags="-DNDEBUG"
 fi
+
+makeflags="$makeflags CFLAGS=\"$cflags\""
 
 if [[ $clean ]]
 then
