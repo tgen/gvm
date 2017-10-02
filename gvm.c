@@ -1210,7 +1210,7 @@ int main(int argc, char **argv) // {{{
 	snp_vcf_fname = malloc(strlen(settings.snp_vcf_path) +
 				strlen(settings.snp_vcf_name) +
 				strlen(settings.chromosome) + 1);
-	
+
 	if (snp_vcf_fname == NULL) {
 		err_printf("failed to allocate memory\n");
 		return EXIT_FAILURE;
@@ -1270,7 +1270,7 @@ int main(int argc, char **argv) // {{{
 	exon_fn = malloc(strlen(settings.out_name) +
 			strlen(settings.chromosome) +
 			       strlen("_exon.txt") + 2);
-	
+
 	if (exon_fn == NULL) {
 		err_printf("unable to allocate memory.");
 		return EXIT_FAILURE;
@@ -1324,13 +1324,13 @@ int main(int argc, char **argv) // {{{
 		err_printf("warning: no bam files loaded\n");
 	}
 	// }}}
-	
+
 	if (settings.exon_only) {
 		regfn = (region_handle_func) write_exon_line;
 	} else {
 		regfn = (region_handle_func) do_region;
 	}
-	
+
 	bedf_forall_region_chr(
 			&context,
 			settings.bed_file,
