@@ -24,6 +24,8 @@
 #include "bam_multi_itr.h"
 #include "bam_mate_table.h"
 
+#include "gengetopt/cmdline.h"
+
 // to aid with debugging in certain cases
 #ifdef DEBUG
 #include "bam_macro_funcs.h"
@@ -45,6 +47,7 @@
 
 /* This program's settings */
 struct settings {
+	char conf_path[256];
 	char ref_file[256];
 	char bam_list[256];
 	char bed_file[256];
@@ -55,6 +58,8 @@ struct settings {
 	char out_name[256];
 
 	char chromosome[100];
+
+	uint32_t exon_only:1, verbose:1, dummy:30;
 
 	uint32_t min_mq;
 	uint32_t min_bq;
@@ -230,7 +235,7 @@ void record_match(	struct context *context,
 
 		HASH_ADD(hh, vtable, offset, sizeof(rep.pos), vtentry);
 	}
-	
+
 	vtentry->read_count++;
 
 	if (mq >= settings.min_mq && bq >= settings.min_bq) {
@@ -244,7 +249,7 @@ void record_match(	struct context *context,
 
 		/* Update the entry */
 		struct variant_counts *vcounts_table = vtentry->counts;
-		
+
 		/* We use a zero'd out key holder to avoid any struct padding nonsense */
 		struct variant_counts key_holder;
 		memset(&key_holder, 0, sizeof(key_holder));
@@ -253,7 +258,7 @@ void record_match(	struct context *context,
 		key_holder.report.pos = rep.pos;
 		key_holder.report.data = rep.data;
 		key_holder.report.size = rep.size;
-		
+
 		HASH_FIND(hh, vcounts_table, &key_holder.report, sizeof(rep), vcounts);
 		if (vcounts == NULL) {
 			vcounts = calloc(1, sizeof(struct variant_counts));
@@ -267,7 +272,7 @@ void record_match(	struct context *context,
 
 			HASH_ADD(hh, vcounts_table, report, sizeof(rep), vcounts);
 		}// else { err_printf("HASH HIT!\n"); }
-	
+
 		/* Update the count */
 		if (is_overlap) {
 			vcounts->count_r++;
@@ -299,7 +304,7 @@ void record_match(	struct context *context,
 
 static
 void report_aggregate(	struct context *context,
-			struct alignment_report rep, 
+			struct alignment_report rep,
 			void *extra_data_p)
 {
 
@@ -325,7 +330,7 @@ void report_aggregate(	struct context *context,
 static
 int chr2idx(const char *chrname)
 {
-	if (strlen(chrname) == 0) return -1;		
+	if (strlen(chrname) == 0) return -1;
 	int sum = chrname[0] + 2*chrname[1];
 	switch (sum) {
 	case '1': return 0;
@@ -480,7 +485,7 @@ float get_af_true(float *af_p, int is_mm)
 }
 
 static
-void dump_variant_info(	struct context *context,	
+void dump_variant_info(	struct context *context,
 			FILE *f,
 			struct variant_counts *vc,
 			uint32_t ref_allele_partial)
@@ -628,7 +633,7 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 	vt.tid = tid;
 
 	dump_vcounts(context, &vt, max_delete_size);
-	
+
 }
 
 static inline
@@ -678,7 +683,7 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 	//		if (cur_delete_size > max_delete_size) {
 	//			max_delete_size = cur_delete_size;
 	//		}
-	//		
+	//
 	//		if (is_mismatch(counts->report, context->ref_seq_info)) {
 	//			has_enough = 1;
 	//		}
@@ -888,7 +893,7 @@ int config_read(const char *cfg_fn, struct settings *s)
 		result = 0;
 		goto done;
 	}
-	
+
 	yaml_parser_set_input_file(&parser, f);
 
 	/* START new code */
@@ -900,22 +905,22 @@ int config_read(const char *cfg_fn, struct settings *s)
 		}
 
 		switch(event.type)
-		{ 
+		{
 		case YAML_NO_EVENT:
 		case YAML_STREAM_START_EVENT:
 		case YAML_STREAM_END_EVENT:
-		case YAML_DOCUMENT_START_EVENT: 
-		case YAML_DOCUMENT_END_EVENT:	
-		case YAML_SEQUENCE_START_EVENT: 
-		case YAML_SEQUENCE_END_EVENT:	
-		case YAML_MAPPING_START_EVENT:	
-		case YAML_MAPPING_END_EVENT:	
+		case YAML_DOCUMENT_START_EVENT:
+		case YAML_DOCUMENT_END_EVENT:
+		case YAML_SEQUENCE_START_EVENT:
+		case YAML_SEQUENCE_END_EVENT:
+		case YAML_MAPPING_START_EVENT:
+		case YAML_MAPPING_END_EVENT:
 			break;
 
 		case YAML_ALIAS_EVENT:
 			fprintf(stderr, "Warning: no alias support (anchor %s)\n", event.data.alias.anchor);
 			break;
-		case YAML_SCALAR_EVENT: 
+		case YAML_SCALAR_EVENT:
 			if (state == 0) { /* This means we need a key */
 				strncpy(value_buf, (char *)event.data.scalar.value, sizeof(value_buf));
 				state = 1;
@@ -947,7 +952,7 @@ done:
 } // }}}
 
 static
-void write_exon_line(struct context *context, uint32_t start, uint32_t end)
+int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 {
 	int i;
 	uint32_t offset;
@@ -957,6 +962,18 @@ void write_exon_line(struct context *context, uint32_t start, uint32_t end)
 	struct bam_multi_itr *bmi;
 
 	struct nm_entry avgs;
+
+	// If --exon-only (-E) was specified, then we still have to load the
+	// normal metrics table. This is usually handled by do_region()
+	if (settings.exon_only) {
+		context->nmt = nm_tbl_create();
+
+		context->reg_start = start;
+		context->reg_end = end;
+
+		nm_query(context->nmi, start - 1, end);
+		nm_tbl_slurp(context->nmt, context->nmi);
+	}
 
 	exon_file = context->exon_file;
 	bmi = context->bmi;
@@ -975,7 +992,7 @@ void write_exon_line(struct context *context, uint32_t start, uint32_t end)
 			mean_read_depth =
 				mean_read_depth * (count - 1) / count +
 				v->read_count_pass / count;
-			
+
 		}
 
 		if (i > 0) fprintf(exon_file, "\t");
@@ -991,6 +1008,16 @@ void write_exon_line(struct context *context, uint32_t start, uint32_t end)
 	}
 
 	fprintf(exon_file, "\n");
+
+	// Now free the normal metrics data but only if --exon-only was
+	// specified.
+	if (settings.exon_only) {
+		nm_tbl_destroy(context->nmt);
+
+		nm_cleanup(context->nmi);
+	}
+
+	return 1;
 }
 
 static
@@ -1082,7 +1109,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	flush_results(context, start, end + 1);
 	// It should be empty now!
-	
+
 	write_exon_line(context, start, end);
 
 #undef GVM_CALL_CALC_ALIGN
@@ -1091,7 +1118,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	bmt_destroy(bmt);
 	nm_tbl_destroy(context->nmt);
 
-	nm_cleanup(context->nmi);	
+	nm_cleanup(context->nmi);
 	bmi_cleanup(bmi);
 
 	//fflush(context->pos_file);
@@ -1099,28 +1126,42 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	return 1;
 } // }}}
 
-int main(int argc, char *argv[]) // {{{
+int main(int argc, char **argv) // {{{
 {
+	struct gengetopt_args_info args_info;
 	faidx_t *ref_idx;
-	char *ref_seq_data, *snp_vcf_fname;
+	char *ref_seq_data, *snp_vcf_fname, *pos_fn, *exon_fn;
 	int len, result, tid;
 	FILE *pos_file, *exon_file;
 	struct ref_seq ref_seq_info;
 	struct bam_multi_itr *bmi;
 	struct nm_itr *nmi;
 	struct context context;
+	region_handle_func regfn;
 
 	// Command line settings {{{
-	if (argc < 3) {
-		fprintf(stderr, PACKAGE_STRING "\n");
-		fprintf(stderr, "usage: %s <config.yaml> <region>\n", argv[0]);
+	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		return EXIT_FAILURE;
 	}
 
-	if (!config_read(argv[1], &settings)) {
+	strncpy(settings.conf_path, args_info.conf_arg, sizeof(settings.conf_path));
+	strncpy(settings.chromosome, args_info.chr_arg, sizeof(settings.chromosome));
+	settings.exon_only = args_info.exon_only_given;
+	settings.verbose = args_info.verbose_given;
+
+	if (!config_read(settings.conf_path, &settings)) {
 		return EXIT_FAILURE;
 	}
-	strncpy(settings.chromosome, argv[2], sizeof(settings.chromosome));
+
+	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
+	verbose_fprintf(stderr, "Chromosome: %s\n", settings.chromosome);
+
+	if (settings.exon_only) {
+		verbose_fprintf(stderr, "Generating only exon files!\n");
+	}
+
+
+	cmdline_parser_free(&args_info);
 
 	// }}}
 
@@ -1144,7 +1185,7 @@ int main(int argc, char *argv[]) // {{{
 		err_printf("Failed to load reference genome index.\n");
 		return EXIT_FAILURE;
 	}
-	
+
 	verbose_fprintf(stderr, "Reading reference genome...\n");
 
 	ref_seq_data = fai_fetch(ref_idx, settings.chromosome, &len);
@@ -1207,19 +1248,21 @@ int main(int argc, char *argv[]) // {{{
 
 
 	// }}}
-	
+
 	// Opening output files {{{
-	char *pos_fn = malloc(strlen(settings.out_name) +
-			      strlen(settings.chromosome) +
-			      strlen("_pos.txt") + 2);
-	
-	if (pos_fn == NULL) {
-		err_printf("unable to allocate memory.");
-		return EXIT_FAILURE;
+	if (!settings.exon_only) {
+		pos_fn = malloc(strlen(settings.out_name) +
+				strlen(settings.chromosome) +
+				strlen("_pos.txt") + 2);
+
+		if (pos_fn == NULL) {
+			err_printf("unable to allocate memory.");
+			return EXIT_FAILURE;
+		}
 	}
 
-	char *exon_fn = malloc(strlen(settings.out_name) +
-			       strlen(settings.chromosome) +
+	exon_fn = malloc(strlen(settings.out_name) +
+			strlen(settings.chromosome) +
 			       strlen("_exon.txt") + 2);
 	
 	if (exon_fn == NULL) {
@@ -1227,17 +1270,24 @@ int main(int argc, char *argv[]) // {{{
 		return EXIT_FAILURE;
 	}
 
-	sprintf(pos_fn, "%s_%s_pos.txt", settings.out_name, settings.chromosome);
+	if (!settings.exon_only) {
+		sprintf(pos_fn, "%s_%s_pos.txt", settings.out_name, settings.chromosome);
+	}
+
 	sprintf(exon_fn, "%s_%s_exon.txt", settings.out_name, settings.chromosome);
 
+	if (settings.exon_only) {
+		pos_file = NULL;
+	} else {
 #ifdef DEBUG
-	pos_file = stdout;
+		pos_file = stdout;
 #else
-	pos_file = fopen(pos_fn, "w");
+		pos_file = fopen(pos_fn, "w");
 #endif
-	if (pos_file == NULL) {
-		err_printf("unable to open %s", pos_fn);
-		perror("");
+		if (pos_file == NULL) {
+			err_printf("unable to open %s", pos_fn);
+			perror("");
+		}
 	}
 
 	exon_file = fopen(exon_fn, "w");
@@ -1246,7 +1296,10 @@ int main(int argc, char *argv[]) // {{{
 		perror("");
 	}
 
-	free(pos_fn);
+	if (!settings.exon_only) {
+		free(pos_fn);
+	}
+
 	free(exon_fn);
 
 	// }}}
@@ -1266,11 +1319,17 @@ int main(int argc, char *argv[]) // {{{
 	}
 	// }}}
 	
+	if (settings.exon_only) {
+		regfn = (region_handle_func) write_exon_line;
+	} else {
+		regfn = (region_handle_func) do_region;
+	}
+	
 	bedf_forall_region_chr(
 			&context,
 			settings.bed_file,
 			settings.chromosome,
-			(region_handle_func) do_region);
+			regfn);
 
 	// Cleanup {{{
 
@@ -1282,7 +1341,10 @@ int main(int argc, char *argv[]) // {{{
 	bcf_sr_destroy(context.bcf_reader);
 	nm_destroy(context.nmi);
 
-	fclose(pos_file);
+	if (!settings.exon_only) {
+		fclose(pos_file);
+	}
+
 	fclose(exon_file);
 #endif
 

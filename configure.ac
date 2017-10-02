@@ -11,6 +11,8 @@ AC_CONFIG_HEADERS([config.h])
 # Checks for programs.
 AC_PROG_CC
 
+AC_CHECK_PROG(GGO_PROG,gengetopt,yes)
+
 # Checks for libraries.
 AC_CHECK_LIB([hts], [bam_endpos], [], AC_MSG_ERROR(please install htslib))
 AC_CHECK_LIB([hts], [bam_endpos2], [], AC_MSG_WARN(you should consider using the bam_endpos2 patch))

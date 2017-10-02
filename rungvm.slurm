@@ -36,7 +36,7 @@ ln -s $SCDIR $SC/latest
 sed "s/\\\$OUTFILE/$JOBNUM\/out/g" $CONF > $SCDIR/conf.yaml
 
 touch $SCDIR/still_running_chr$CHR
-perf stat $GVM_EXEC $SCDIR/conf.yaml $CHR
+perf stat $GVM_EXEC -c $SCDIR/conf.yaml -C $CHR
 rm $SCDIR/still_running_chr$CHR
 
 
