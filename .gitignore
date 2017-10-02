@@ -8,6 +8,7 @@ output/*.out
 
 !gengetopt
 gengetopt/*.[ch]
+cmdline.[ch]
 
 tags
 *.o
