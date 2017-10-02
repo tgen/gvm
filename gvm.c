@@ -375,7 +375,10 @@ void sort_vcounts(struct variant_table *vtable)
 }
 
 static
-void find_ab(struct variant_table *vtable, struct variant_counts **a, struct variant_counts **b)
+void find_ab(	struct variant_table *vtable,
+		struct variant_counts **a,
+		struct variant_counts **b,
+		struct variant_counts *default_value)
 {
 	struct variant_counts *vcounts = vtable->counts, *candidate, *tmp;
 
@@ -387,8 +390,8 @@ void find_ab(struct variant_table *vtable, struct variant_counts **a, struct var
 		return;
 	}
 
-	*a = NULL;
-	*b = NULL;
+	*a = default_value;
+	*b = default_value;
 
 	HASH_ITER(hh, vcounts, candidate, tmp) {
 		uint32_t total = candidate->count_f + candidate->count_r;
@@ -403,8 +406,16 @@ void find_ab(struct variant_table *vtable, struct variant_counts **a, struct var
 		}
 	}
 
-	vtable->a_cache = *a;
-	vtable->b_cache = *b;
+	/* We don't want to stick the default value in the cache;
+	 * it may be stack-allocated */
+
+	if (*a != default_value) {
+		vtable->a_cache = *a;
+	}
+
+	if (*b != default_value) {
+		vtable->b_cache = *b;
+	}
 }
 
 static
@@ -573,17 +584,12 @@ void dump_vcounts(	struct context *context,
 	float *pop_af_p = &pop_af,
 	      *cosm_af_p  = &cosm_af;
 
-	find_ab(v, &a, &b);
+	memset(&dummy, 0, sizeof(dummy));
+	dummy.total_mq = settings.default_mq;
+	dummy.total_bq = settings.default_bq;
 
+	find_ab(v, &a, &b, &dummy);
 
-	if (!a || !b) {
-		memset(&dummy, 0, sizeof(dummy));
-		dummy.total_mq = settings.default_mq;
-		dummy.total_bq = settings.default_bq;
-	}
-
-	if (!a) a = &dummy;
-	if (!b) b = &dummy;
 
 	ref_allele_partial =
 		collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
@@ -659,7 +665,7 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 		if (vtable == NULL) continue;
 
 
-		find_ab(vtable, &a, &b);
+		find_ab(vtable, &a, &b, NULL);
 		max_of_ab = MAX(get_delete_size(a), get_delete_size(b));
 		if (max_of_ab > max_delete_size) max_delete_size = max_of_ab;
 
