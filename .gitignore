@@ -6,6 +6,9 @@ build/.deps
 !output
 output/*.out
 
+!gengetopt
+gengetopt/*.[ch]
+
 tags
 *.o
 
