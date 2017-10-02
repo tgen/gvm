@@ -1241,9 +1241,9 @@ int main(int argc, char **argv) // {{{
 
 	// Normal metrics loading {{{
 	char *normal_path = malloc(strlen(settings.normal_base_path) +
-				   strlen(settings.chromosome) +
-				   strlen(".txt.gz") + 1);
-				 
+				strlen(settings.chromosome) +
+				strlen(".txt.gz") + 1);
+
 	strcpy(normal_path, settings.normal_base_path);
 	strcat(normal_path, settings.chromosome);
 	strcat(normal_path, ".txt.gz");
