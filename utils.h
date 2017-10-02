@@ -4,11 +4,7 @@
 #define err_printf_helper(fmtstr, ...) fprintf(stderr, "%s:%d: " fmtstr "%c", __FILE__, __LINE__, __VA_ARGS__)
 #define err_printf(...) err_printf_helper(__VA_ARGS__, 0)
 
-#ifdef VERBOSE
-#define verbose_fprintf fprintf
-#else
-#define verbose_fprintf(...) do{} while(0);
-#endif
+#define verbose_fprintf(...) do { if(settings.verbose) fprintf(__VA_ARGS__); } while(0);
 
 #define MAX(X,Y) ( (X) > (Y) ? (X) : (Y) )
 
