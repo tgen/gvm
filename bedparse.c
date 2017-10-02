@@ -12,11 +12,15 @@ int bedf_read_single(	FILE *bedf,
 {
 	int dummy;
 
+	char line[1024];
 	char format[128];
+
+	if (!fgets(line, sizeof(line), bedf)) {
+		return EOF;
+	}
+
 	snprintf(format, sizeof(format), "%%%ds\t%%d\t%%d\t%%d", (int) chr_size - 1);
-
-	return fscanf(bedf, format, chr, start, end, &dummy);
-
+	return sscanf(line, format, chr, start, end, &dummy);
 }
 
 int bedf_forall_region_chr(	void *context,
