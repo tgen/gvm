@@ -2,6 +2,9 @@
 !*.*
 
 !build
+build/.deps
+!output
+output/*.out
 
 tags
 *.o
