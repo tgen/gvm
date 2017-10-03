@@ -32,10 +32,7 @@ done
 if [[ $init ]]
 then
 	autoreconf --install
-	cd build
 	../configure
-else
-	cd build
 fi
 
 if [[ $debug ]]

@@ -1,10 +1,10 @@
 *
 !*.*
 
-!build
-build/.deps
 !output
 output/*.out
+
+!src
 
 !gengetopt
 gengetopt/*.[ch]

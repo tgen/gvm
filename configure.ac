@@ -5,6 +5,7 @@ AC_PREREQ([2.63])
 AC_INIT([gvm], [0.1], [skulkarni@tgen.org])
 AM_INIT_AUTOMAKE([foreign])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_SRCDIR([src])
 
 : ${CFLAGS=""}
 
@@ -38,5 +39,5 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([getpagesize gettimeofday memmove memset strdup strerror strtol])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile src/Makefile src/gengetopt/Makefile])
 AC_OUTPUT

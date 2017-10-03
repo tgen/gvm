@@ -17,7 +17,7 @@ module load yaml
 module load samtools
 module load htslib
 
-GVM_EXEC=$PWD/build/gvm
+GVM_EXEC=$PWD/src/gvm
 
 SC="/scratch/skulkarni"
 PERL5LIB="$PERL5LIB:/home/rhalperin/perl5lib/lib"
@@ -38,5 +38,3 @@ sed "s/\\\$OUTFILE/$JOBNUM\/out/g" $CONF > $SCDIR/conf.yaml
 touch $SCDIR/still_running_chr$CHR
 perf stat $GVM_EXEC -c $SCDIR/conf.yaml -C $CHR
 rm $SCDIR/still_running_chr$CHR
-
-
