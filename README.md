@@ -21,21 +21,22 @@ If you're on the dback cluster, all you should need to do is run:
 $ ./build.sh --init
 ```
 
-And everything should get built.
+And everything should get built. The `gvm` executable should be placed
+in the `src` directory.
 
 ### Running
 
 Run
 
 ```
-$ build/gvm --help
+$ src/gvm --help
 ```
 
 to see the options available. Generally you're going to want to do something
 like this:
 
 ```
-$ build/gvm -c <path to your config.yaml> -C <chromosome to run on>
+$ src/gvm -c <path to your config.yaml> -C <chromosome to run on>
 ```
 
 #### The slurm script
