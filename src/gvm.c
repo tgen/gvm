@@ -183,6 +183,34 @@ int modify_overlap_quals(bam1_t *bam, bam1_t *mbam,
 }
 
 static
+void update_ab(struct variant_table *v, struct variant_counts *new_entry)
+{
+	uint32_t total_count, a_total, b_total;
+	total_count = new_entry->count_r + new_entry->count_f;
+
+	if (!v->a) {
+		v->a = new_entry;
+		return;
+	}
+	if (!v->b) {
+		if (new_entry == v->a) return;
+
+		v->b = new_entry;
+		return;
+	}
+
+	a_total = v->a->count_r + v->a->count_f;
+	b_total = v->b->count_r + v->b->count_f;
+
+	if (total_count > a_total) {
+		v->b = v->a;
+		v->a = new_entry;
+	} else if (total_count > b_total && new_entry != v->a) {
+		v->b = new_entry;
+	}
+}
+
+static
 void record_match(	struct context *context,
 			struct alignment_report rep,
 			void *extra_data_p)
@@ -193,6 +221,7 @@ void record_match(	struct context *context,
 	struct extra_data *extra_data = extra_data_p;
 
 	uint32_t mq, bq;
+
 	int is_overlap = 0;
 
 	uint32_t sample_index = context->sample_index;
@@ -291,11 +320,11 @@ void record_match(	struct context *context,
 		assert(mm_count <= bam->core.l_qseq);
 		vcounts->total_pmm += (double) mm_count / bam->core.l_qseq;
 
+		update_ab(vtentry, vcounts);
 
+		/* The pointer may have changed */
 		vtentry->counts = vcounts_table;
-
 	}
-
 
 	/* Update the vtable */
 	context->bmi->itr_list[sample_index].vtable = vtable;
@@ -372,50 +401,6 @@ static __attribute__((unused))
 void sort_vcounts(struct variant_table *vtable)
 {
 	HASH_SORT(vtable->counts, cmp_vcounts);
-}
-
-static
-void find_ab(	struct variant_table *vtable,
-		struct variant_counts **a,
-		struct variant_counts **b,
-		struct variant_counts *default_value)
-{
-	struct variant_counts *vcounts = vtable->counts, *candidate, *tmp;
-
-	uint32_t biggest = 0, second_biggest = 0;
-
-	if (vtable->a_cache != NULL && vtable->b_cache != NULL) {
-		*a = vtable->a_cache;
-		*b = vtable->b_cache;
-		return;
-	}
-
-	*a = default_value;
-	*b = default_value;
-
-	HASH_ITER(hh, vcounts, candidate, tmp) {
-		uint32_t total = candidate->count_f + candidate->count_r;
-		if (total > biggest) {
-			second_biggest = biggest;
-			biggest = total;
-			*b = *a;
-			*a = candidate;
-		} else if (total > second_biggest) {
-			second_biggest = total;
-			*b = candidate;
-		}
-	}
-
-	/* We don't want to stick the default value in the cache;
-	 * it may be stack-allocated */
-
-	if (*a != default_value) {
-		vtable->a_cache = *a;
-	}
-
-	if (*b != default_value) {
-		vtable->b_cache = *b;
-	}
 }
 
 static
@@ -588,8 +573,16 @@ void dump_vcounts(	struct context *context,
 	dummy.total_mq = settings.default_mq;
 	dummy.total_bq = settings.default_bq;
 
-	find_ab(v, &a, &b, &dummy);
+	a = v->a ? v->a : &dummy;
+	b = v->b ? v->b : &dummy;
 
+	/* If this fails, then a and b are both being set
+	 * but to the same thing which is bad */
+	assert((a == &dummy && b == &dummy) || a != b);
+
+	/* If this fails then a and b are not ordered correctly
+	 * and are most likely completely wrong. */
+	assert(a->count_f + a->count_r >= b->count_f + b->count_r);
 
 	ref_allele_partial =
 		collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
@@ -665,7 +658,8 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 		if (vtable == NULL) continue;
 
 
-		find_ab(vtable, &a, &b, NULL);
+		a = vtable->a;
+		b = vtable->b;
 		max_of_ab = MAX(get_delete_size(a), get_delete_size(b));
 		if (max_of_ab > max_delete_size) max_delete_size = max_of_ab;
 
