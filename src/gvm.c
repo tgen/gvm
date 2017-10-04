@@ -6,13 +6,13 @@
 
 #include <config.h>
 
-#include "yaml.h"
+#include <yaml.h>
+#include <htslib/sam.h>
+#include <htslib/faidx.h>
+#include <htslib/synced_bcf_reader.h>
 
-#include "uthash.h"
+#include <uthash.h>
 
-#include "htslib/sam.h"
-#include "htslib/faidx.h"
-#include "htslib/synced_bcf_reader.h"
 
 #include "utils.h"
 #include "ref_seq.h"
