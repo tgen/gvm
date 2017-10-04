@@ -13,6 +13,10 @@ AC_CONFIG_SRCDIR([src])
 AC_PROG_CC
 
 AC_CHECK_PROG(GGO_PROG,gengetopt,yes)
+if test x"${GGO_PROG}" != x"yes"
+then AC_MSG_ERROR([Please install GNU gengetopt])
+fi
+
 
 # Checks for libraries.
 AC_CHECK_LIB([hts], [bam_endpos], [], AC_MSG_ERROR(please install htslib))
