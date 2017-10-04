@@ -1027,6 +1027,64 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 }
 
 static
+int open_out_files(struct context *context)
+{
+	char *pos_fn, *exon_fn;
+	FILE *pos_file, *exon_file;
+
+	if (!settings.exon_only) {
+		pos_fn = malloc(strlen(settings.out_name) +
+				strlen(settings.chromosome) +
+				strlen("_pos.txt") + 2);
+
+		if (pos_fn == NULL) {
+			err_printf("unable to allocate memory.");
+			return 1;
+		}
+		sprintf(pos_fn, "%s_%s_pos.txt", settings.out_name, settings.chromosome);
+
+#ifdef DEBUG
+		pos_file = stdout;
+#else
+		pos_file = fopen(pos_fn, "w");
+#endif
+		if (pos_file == NULL) {
+			err_printf("unable to open %s", pos_fn);
+			perror("");
+		}
+
+		free(pos_fn);
+	} else {
+		pos_file = NULL;
+	}
+
+
+	exon_fn = malloc(strlen(settings.out_name) +
+			strlen(settings.chromosome) +
+			       strlen("_exon.txt") + 2);
+
+	if (exon_fn == NULL) {
+		err_printf("unable to allocate memory.");
+		return 1;
+	}
+
+	sprintf(exon_fn, "%s_%s_exon.txt", settings.out_name, settings.chromosome);
+
+	exon_file = fopen(exon_fn, "w");
+	if (exon_file == NULL) {
+		err_printf("unable to open %s", exon_fn);
+		perror("");
+	}
+
+	free(exon_fn);
+
+	context->pos_file = pos_file;
+	context->exon_file = exon_file;
+
+	return 0;
+}
+
+static
 int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 {
 	verbose_fprintf(stderr, "--- region:  %d  to  %d  \n", start, end);
@@ -1136,9 +1194,8 @@ int main(int argc, char **argv) // {{{
 {
 	struct gengetopt_args_info args_info;
 	faidx_t *ref_idx;
-	char *ref_seq_data, *snp_vcf_fname, *pos_fn, *exon_fn;
+	char *ref_seq_data, *snp_vcf_fname;
 	int len, result, tid;
-	FILE *pos_file, *exon_file;
 	struct ref_seq ref_seq_info;
 	struct bam_multi_itr *bmi;
 	struct nm_itr *nmi;
@@ -1255,60 +1312,9 @@ int main(int argc, char **argv) // {{{
 
 	// }}}
 
-	// Opening output files {{{
-	if (!settings.exon_only) {
-		pos_fn = malloc(strlen(settings.out_name) +
-				strlen(settings.chromosome) +
-				strlen("_pos.txt") + 2);
-
-		if (pos_fn == NULL) {
-			err_printf("unable to allocate memory.");
-			return EXIT_FAILURE;
-		}
-	}
-
-	exon_fn = malloc(strlen(settings.out_name) +
-			strlen(settings.chromosome) +
-			       strlen("_exon.txt") + 2);
-
-	if (exon_fn == NULL) {
-		err_printf("unable to allocate memory.");
+	if (open_out_files(&context) != 0) {
 		return EXIT_FAILURE;
 	}
-
-	if (!settings.exon_only) {
-		sprintf(pos_fn, "%s_%s_pos.txt", settings.out_name, settings.chromosome);
-	}
-
-	sprintf(exon_fn, "%s_%s_exon.txt", settings.out_name, settings.chromosome);
-
-	if (settings.exon_only) {
-		pos_file = NULL;
-	} else {
-#ifdef DEBUG
-		pos_file = stdout;
-#else
-		pos_file = fopen(pos_fn, "w");
-#endif
-		if (pos_file == NULL) {
-			err_printf("unable to open %s", pos_fn);
-			perror("");
-		}
-	}
-
-	exon_file = fopen(exon_fn, "w");
-	if (exon_file == NULL) {
-		err_printf("unable to open %s", exon_fn);
-		perror("");
-	}
-
-	if (!settings.exon_only) {
-		free(pos_fn);
-	}
-
-	free(exon_fn);
-
-	// }}}
 
 	// Context initialization {{{
 	context.ref_seq_info = ref_seq_info;
@@ -1316,9 +1322,6 @@ int main(int argc, char **argv) // {{{
 	context.tid = tid;
 	context.target_name = settings.chromosome;
 	context.nmi = nmi;
-
-	context.pos_file = pos_file;
-	context.exon_file = exon_file;
 
 	if (context.tid == -1) {
 		err_printf("warning: no bam files loaded\n");
