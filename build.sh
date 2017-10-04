@@ -32,7 +32,7 @@ done
 if [[ $init ]]
 then
 	autoreconf --install
-	../configure
+	./configure
 fi
 
 if [[ $debug ]]
