@@ -439,19 +439,18 @@ int get_af(bcf_sr_t *reader, bcf1_t *line, float **af)
 
 static
 void get_afs(	struct context *context,
-		struct alignment_report report,
+		uint32_t offset,
 		float **pop_af, float **cosm_af)
 {
-
 	bcf1_t *line;
 	bcf_sr_t *reader;
 
-	bcf_sr_seek(context->bcf_reader, context->target_name, report.pos);
+	bcf_sr_seek(context->bcf_reader, context->target_name, offset);
 	bcf_sr_next_line(context->bcf_reader);
 
 	if (bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
 		line = bcf_sr_get_line(context->bcf_reader, SNP_VCF_INDEX);
-		if ((uint32_t) line->pos == report.pos) {
+		if ((uint32_t) line->pos == offset) {
 			reader = &context->bcf_reader->readers[SNP_VCF_INDEX];
 			get_af(reader, line, pop_af);
 		} else {
@@ -463,7 +462,7 @@ void get_afs(	struct context *context,
 
 	if (bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
 		line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
-		if ((uint32_t) line->pos == report.pos) {
+		if ((uint32_t) line->pos == offset) {
 			reader = &context->bcf_reader->readers[COSMIC_VCF_INDEX];
 			get_af(reader, line, cosm_af);
 		} else {
