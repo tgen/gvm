@@ -3,3 +3,6 @@ cmdline.c cmdline.h: gvm.ggo
 
 all: cmdline.c cmdline.h
 
+clean:
+	rm -f cmdline.c cmdline.h
+
