@@ -50,9 +50,9 @@ struct variant_table {
 
 	struct variant_counts *counts;
 
-	// cache for A and B (top two) alleles
-	struct variant_counts *a_cache;
-	struct variant_counts *b_cache;
+	// keep track of top two alleles
+	struct variant_counts *a;
+	struct variant_counts *b;
 
 	UT_hash_handle hh;
 };

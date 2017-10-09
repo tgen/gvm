@@ -46,7 +46,7 @@ int nm_parse_next(struct nm_itr *, struct nm_entry *);
 
 struct nm_tbl *nm_tbl_create();
 void nm_tbl_destroy(struct nm_tbl *);
-int nm_tbl_add(struct nm_tbl *, struct nm_entry);
+int nm_tbl_add(struct nm_tbl *, struct nm_entry, int only_average);
 int nm_tbl_slurp(struct nm_tbl *, struct nm_itr *);
 struct nm_entry *nm_tbl_get(struct nm_tbl *, uint32_t);
 

@@ -18,6 +18,7 @@
 #include "ref_seq.h"
 #include "base_seq_repr.h"
 #include "nmparse.h"
+#include "nmcalc.h"
 #include "bedparse.h"
 #include "report.h"
 #include "cigar.h"
@@ -59,7 +60,11 @@ struct settings {
 
 	char chromosome[100];
 
-	uint32_t exon_only:1, verbose:1, dummy:30;
+	uint32_t output_pos:1,
+		 output_exon:1,
+		 output_nmetrics:1,
+		 verbose:1,
+		 dummy:28;
 
 	uint32_t min_mq;
 	uint32_t min_bq;
@@ -100,6 +105,7 @@ struct context {
 
 	FILE *pos_file;
 	FILE *exon_file;
+	FILE *nmetrics_file;
 };
 
 // }}}
@@ -624,15 +630,34 @@ void dump_vcounts(	struct context *context,
 static
 void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t offset, int max_delete_size)
 {
-	int tid = chr2idx(settings.chromosome);
 	struct variant_table vt = {0};
 
 	vt.sample_index = sample_idx;
 	vt.offset = offset;
-	vt.tid = tid;
+	vt.tid = context->tid;
 
 	dump_vcounts(context, &vt, max_delete_size);
 
+}
+
+static
+void dump_nmetrics(struct context *context, uint32_t offset, struct nm_entry avgs, int count)
+{
+	fprintf(context->nmetrics_file, "%d\t%d\t%g\t%g\t%g\t%g\n",
+			context->tid,
+			offset,
+			avgs.norm_read_depth,
+			avgs.prob_map_err,
+			avgs.read_pass,
+			avgs.a_or_b);
+}
+
+static
+void dump_blank_nmetrics(struct context *context, uint32_t offset)
+{
+	fprintf(context->nmetrics_file, "%d\t%d\t0\tNaN\tNaN\tNaN\n",
+			context->tid,
+			offset);
 }
 
 static inline
@@ -701,6 +726,9 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 
 	uint32_t offset, sample_idx;
 
+	struct nm_entry ent = {0};
+	struct nm_tbl tbl;
+
 	// clamp in region
 	if (begin < context->reg_start) begin = context->reg_start;
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
@@ -713,10 +741,26 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 			vt = context->bmi->itr_list[sample_idx].vtable;
 
 			HASH_FIND_INT(vt, &offset, v);
-			if (v == NULL) {
-				dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
+			if (settings.output_pos) {
+				if (v == NULL) {
+					dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
+				} else {
+					dump_vcounts(context, v, max_delete_size);
+				}
+			}
+
+			if (settings.output_nmetrics && v != NULL) {
+				nmcalc(context, v, &ent);
+				nm_tbl_add(&tbl, ent, 1 /* only compute averages */);
+
+			}
+		}
+
+		if (settings.output_nmetrics) {
+			if (tbl.count == 0) {
+				dump_blank_nmetrics(context, offset);
 			} else {
-				dump_vcounts(context, v, max_delete_size);
+				dump_nmetrics(context, offset, tbl.avgs, tbl.count);
 			}
 		}
 	}
@@ -963,18 +1007,6 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 
 	struct nm_entry avgs;
 
-	// If --exon-only (-E) was specified, then we still have to load the
-	// normal metrics table. This is usually handled by do_region()
-	if (settings.exon_only) {
-		context->nmt = nm_tbl_create();
-
-		context->reg_start = start;
-		context->reg_end = end;
-
-		nm_query(context->nmi, start - 1, end);
-		nm_tbl_slurp(context->nmt, context->nmi);
-	}
-
 	exon_file = context->exon_file;
 	bmi = context->bmi;
 	avgs = context->nmt->avgs;
@@ -1009,14 +1041,6 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 
 	fprintf(exon_file, "\n");
 
-	// Now free the normal metrics data but only if --exon-only was
-	// specified.
-	if (settings.exon_only) {
-		nm_tbl_destroy(context->nmt);
-
-		nm_cleanup(context->nmi);
-	}
-
 	return 1;
 }
 
@@ -1026,7 +1050,7 @@ int open_out_files(struct context *context)
 	char *pos_fn, *exon_fn;
 	FILE *pos_file, *exon_file;
 
-	if (!settings.exon_only) {
+	if (settings.output_pos) {
 		pos_fn = malloc(strlen(settings.out_name) +
 				strlen(settings.chromosome) +
 				strlen("_pos.txt") + 2);
@@ -1053,30 +1077,53 @@ int open_out_files(struct context *context)
 	}
 
 
-	exon_fn = malloc(strlen(settings.out_name) +
-			strlen(settings.chromosome) +
-			       strlen("_exon.txt") + 2);
+	if (settings.output_exon) {
+		exon_fn = malloc(strlen(settings.out_name) +
+				strlen(settings.chromosome) +
+				       strlen("_exon.txt") + 2);
 
-	if (exon_fn == NULL) {
-		err_printf("unable to allocate memory.");
-		return 1;
+		if (exon_fn == NULL) {
+			err_printf("unable to allocate memory.");
+			return 1;
+		}
+
+		sprintf(exon_fn, "%s_%s_exon.txt", settings.out_name, settings.chromosome);
+
+		exon_file = fopen(exon_fn, "w");
+		if (exon_file == NULL) {
+			err_printf("unable to open %s", exon_fn);
+			perror("");
+		}
+
+		free(exon_fn);
+	} else {
+		exon_file = NULL;
 	}
-
-	sprintf(exon_fn, "%s_%s_exon.txt", settings.out_name, settings.chromosome);
-
-	exon_file = fopen(exon_fn, "w");
-	if (exon_file == NULL) {
-		err_printf("unable to open %s", exon_fn);
-		perror("");
-	}
-
-	free(exon_fn);
 
 	context->pos_file = pos_file;
 	context->exon_file = exon_file;
 
 	return 0;
 }
+
+
+#define GVM_CALL_CALC_ALIGN(R) \
+	do { \
+		memset(&ed, 0, sizeof(ed)); \
+		R = calc_alignments( \
+				context->bam, \
+				context->ref_seq_info, \
+				record_match, \
+				report_aggregate, \
+				context, \
+				&ed); \
+	} while (0)
+
+#define GVM_CHECK_RESULT(R) \
+	if (R < 0) { \
+		err_printf("failed to calculate alignments (err code %d)\n", R); \
+		return EXIT_FAILURE; \
+	}
 
 static
 int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
@@ -1105,73 +1152,56 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	nm_query(context->nmi, start - 1, end);
 	nm_tbl_slurp(context->nmt, context->nmi);
 
-	// Main processing loop {{{
-	while ( (sample_index = bmi_next(bmi, &bam)) >= 0 ) {
-		if (!check_flags(bam)) continue;
+	if (settings.output_pos || settings.output_nmetrics) {
+		// Main processing loop {{{
+		while ( (sample_index = bmi_next(bmi, &bam)) >= 0 ) {
+			if (!check_flags(bam)) continue;
 
-		mbam = NULL;
+			mbam = NULL;
 
-		if (!is_split_read(bam)) {
-			bmt = bmt_register(bmt, bam, &mbam, &result);
-			if (result == 1) continue;
+			if (!is_split_read(bam)) {
+				bmt = bmt_register(bmt, bam, &mbam, &result);
+				if (result == 1) continue;
+			}
+
+			context->sample_index = (uint32_t) sample_index;
+			context->bam = mbam;
+			context->mbam = bam;
+
+
+			if (mbam != NULL) {
+				GVM_CALL_CALC_ALIGN(result);
+				GVM_CHECK_RESULT(result);
+			}
+
+			context->bam = bam;
+			context->mbam = mbam;
+
+			GVM_CALL_CALC_ALIGN(result);
+			GVM_CHECK_RESULT(result);
+
+			if (mbam != NULL) {
+				bam_destroy1(mbam);
+			}
+
 		}
+		// }}}
 
-		context->sample_index = (uint32_t) sample_index;
-		context->bam = mbam;
-		context->mbam = bam;
-
-
-#define GVM_CALL_CALC_ALIGN(R) \
-	do { \
-		memset(&ed, 0, sizeof(ed)); \
-		R = calc_alignments( \
-				context->bam, \
-				context->ref_seq_info, \
-				record_match, \
-				report_aggregate, \
-				context, \
-				&ed); \
-	} while (0)
-
-#define GVM_CHECK_RESULT(R) \
-	if (R < 0) { \
-		err_printf("failed to calculate alignments (err code %d)\n", R); \
-		return EXIT_FAILURE; \
-	}
-
-
-		if (mbam != NULL) {
+		context->mbam = NULL;
+		HASH_ITER(hh, bmt, left_behind, tmp) {
+			context->bam = left_behind->bam;
 			GVM_CALL_CALC_ALIGN(result);
 			GVM_CHECK_RESULT(result);
 		}
 
-		context->bam = bam;
-		context->mbam = mbam;
-
-		GVM_CALL_CALC_ALIGN(result);
-		GVM_CHECK_RESULT(result);
-
-		if (mbam != NULL) {
-			bam_destroy1(mbam);
-		}
-
-	}
-	// }}}
-
-	context->mbam = NULL;
-	HASH_ITER(hh, bmt, left_behind, tmp) {
-		context->bam = left_behind->bam;
-		GVM_CALL_CALC_ALIGN(result);
-		GVM_CHECK_RESULT(result);
+		flush_results(context, start, end + 1);
 	}
 
-	flush_results(context, start, end + 1);
 	// It should be empty now!
 
-	write_exon_line(context, start, end);
-
-#undef GVM_CALL_CALC_ALIGN
-#undef GVM_CHECK_RESULT
+	if (settings.output_exon) {
+		write_exon_line(context, start, end);
+	}
 
 	bmt_destroy(bmt);
 	nm_tbl_destroy(context->nmt);
@@ -1183,6 +1213,9 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	return 1;
 } // }}}
+
+#undef GVM_CALL_CALC_ALIGN
+#undef GVM_CHECK_RESULT
 
 int main(int argc, char **argv) // {{{
 {
@@ -1203,7 +1236,11 @@ int main(int argc, char **argv) // {{{
 
 	strncpy(settings.conf_path, args_info.conf_arg, sizeof(settings.conf_path));
 	strncpy(settings.chromosome, args_info.chr_arg, sizeof(settings.chromosome));
-	settings.exon_only = args_info.exon_only_given;
+
+	/* output settings */
+	settings.output_pos = 1;
+	settings.output_exon = 1;
+	settings.output_nmetrics = 0;
 	settings.verbose = args_info.verbose_given;
 
 	if (!config_read(settings.conf_path, &settings)) {
@@ -1212,11 +1249,6 @@ int main(int argc, char **argv) // {{{
 
 	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
 	verbose_fprintf(stderr, "Chromosome: %s\n", settings.chromosome);
-
-	if (settings.exon_only) {
-		verbose_fprintf(stderr, "Generating only exon files!\n");
-	}
-
 
 	cmdline_parser_free(&args_info);
 
@@ -1322,11 +1354,7 @@ int main(int argc, char **argv) // {{{
 	}
 	// }}}
 
-	if (settings.exon_only) {
-		regfn = (region_handle_func) write_exon_line;
-	} else {
-		regfn = (region_handle_func) do_region;
-	}
+	regfn = (region_handle_func) do_region;
 
 	bedf_forall_region_chr(
 			&context,
@@ -1344,11 +1372,13 @@ int main(int argc, char **argv) // {{{
 	bcf_sr_destroy(context.bcf_reader);
 	nm_destroy(context.nmi);
 
-	if (!settings.exon_only) {
-		fclose(pos_file);
+	if (context->pos_file != NULL) {
+		fclose(context->pos_file);
 	}
 
-	fclose(exon_file);
+	if (context->exon_file != NULL) {
+		fclose(context->exon_file);
+	}
 #endif
 
 	// }}}

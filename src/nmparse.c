@@ -114,14 +114,16 @@ void nm_tbl_destroy(struct nm_tbl *nmt)
 }
 
 #define UPDATE_AVERAGE(CUR, NEXT, TOTAL) CUR = (CUR) * ((TOTAL) - 1) / (TOTAL) + (NEXT) / (TOTAL)
-int nm_tbl_add(struct nm_tbl *nmt, struct nm_entry ent)
+int nm_tbl_add(struct nm_tbl *nmt, struct nm_entry ent, int only_average)
 {
-	struct nm_entry *heap_ent = malloc(sizeof(*heap_ent));
-	if (heap_ent == NULL) return -1;
+	if (!only_average) {
+		struct nm_entry *heap_ent = malloc(sizeof(*heap_ent));
+		if (heap_ent == NULL) return -1;
 
-	memcpy(heap_ent, &ent, sizeof(ent));
+		memcpy(heap_ent, &ent, sizeof(ent));
 
-	HASH_ADD_INT(nmt->tbl, pos, heap_ent);
+		HASH_ADD_INT(nmt->tbl, pos, heap_ent);
+	}
 
 	nmt->count++;
 
@@ -141,7 +143,7 @@ int nm_tbl_slurp(struct nm_tbl *nmt, struct nm_itr *nmi)
 	assert(nmi->itr != NULL /* Need to call nm_query before nm_tbl_slurp */);
 	struct nm_entry ent = {0};
 	while (nm_parse_next(nmi, &ent) >= 0) {
-		int res = nm_tbl_add(nmt, ent);
+		int res = nm_tbl_add(nmt, ent, 0);
 		if (res != 1) return res;
 	}
 
