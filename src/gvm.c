@@ -709,7 +709,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	struct nm_entry ent = {0};
 	struct nm_tbl tbl;
 
-	float af = 0, cosm_af = 0;
+	float af, cosm_af;
 	float *af_p, *cosm_af_p;
 
 	// clamp in region
@@ -720,7 +720,9 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		max_delete_size = get_max_delete_size(context, offset);
 		if (max_delete_size < 0) continue;
 
+		af = 0;
 		af_p = &af;
+		cosm_af = 0;
 		cosm_af_p = &cosm_af;
 
 		get_afs(context, offset, &af_p, &cosm_af_p);
