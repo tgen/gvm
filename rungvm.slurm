@@ -21,7 +21,7 @@ GVM_EXEC=$PWD/src/gvm
 
 SC="/scratch/skulkarni"
 PERL5LIB="$PERL5LIB:/home/rhalperin/perl5lib/lib"
-CONF=/home/skulkarni/programs/gvm/conf.yaml
+CONF=/home/skulkarni/programs/gvm/confs/conf.yaml
 
 JOBNUM=$SLURM_ARRAY_JOB_ID
 
