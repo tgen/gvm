@@ -577,6 +577,8 @@ void dump_vcounts(	struct context *context,
 	memset(&dummy, 0, sizeof(dummy));
 	dummy.total_mq = settings.default_mq;
 	dummy.total_bq = settings.default_bq;
+	dummy.pos = v->offset;
+	dummy.report.pos = v->offset;
 
 	a = v->a ? v->a : &dummy;
 	b = v->b ? v->b : &dummy;
