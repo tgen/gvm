@@ -556,7 +556,9 @@ void dump_nm_data(	struct context *context,
 static
 void dump_vcounts(	struct context *context,
 			struct variant_table *v,
-			int max_delete_size )
+			int max_delete_size,
+			float *af_p,
+			float *cosm_af_p	)
 {
 	FILE *f = context->pos_file;
 	struct variant_counts *a = NULL, *b = NULL, dummy;
@@ -566,13 +568,9 @@ void dump_vcounts(	struct context *context,
 
 	uint32_t ref_allele, ref_allele_partial;
 
-	float pop_af,
-	      cosm_af,
-	      a_pop_af,
-	      b_pop_af;
+	float a_pop_af, b_pop_af, cosm_af;
 
-	float *pop_af_p = &pop_af,
-	      *cosm_af_p  = &cosm_af;
+	cosm_af = cosm_af_p ? *cosm_af_p : 0;
 
 	memset(&dummy, 0, sizeof(dummy));
 	dummy.total_mq = settings.default_mq;
@@ -610,17 +608,11 @@ void dump_vcounts(	struct context *context,
 	dump_variant_info(context, f, b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	get_afs(context, a->report, &pop_af_p, &cosm_af_p);
-
 	is_mm = is_mismatch(a->report, context->ref_seq_info);
-	a_pop_af = get_af_true(pop_af_p, is_mm);
+	a_pop_af = get_af_true(af_p, is_mm);
 
 	is_mm = is_mismatch(b->report, context->ref_seq_info);
-	b_pop_af = get_af_true(pop_af_p, is_mm);
-
-	if (cosm_af_p == NULL) {
-		cosm_af = 0;
-	}
+	b_pop_af = get_af_true(af_p, is_mm);
 
 	fprintf(f, "%g\t%g\t%g\t", a_pop_af, b_pop_af, cosm_af);
 
@@ -633,11 +625,13 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 {
 	struct variant_table vt = {0};
 
+	float af = 0, cosm_af = 0;
+
 	vt.sample_index = sample_idx;
 	vt.offset = offset;
 	vt.tid = context->tid;
 
-	dump_vcounts(context, &vt, max_delete_size);
+	dump_vcounts(context, &vt, max_delete_size, &af, &cosm_af);
 
 }
 
@@ -730,6 +724,9 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	struct nm_entry ent = {0};
 	struct nm_tbl tbl;
 
+	float af = 0, cosm_af = 0;
+	float *af_p, *cosm_af_p;
+
 	// clamp in region
 	if (begin < context->reg_start) begin = context->reg_start;
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
@@ -737,6 +734,11 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	for (offset = begin; offset < end; offset++) {
 		max_delete_size = get_max_delete_size(context, offset);
 		if (max_delete_size < 0) continue;
+
+		af_p = &af;
+		cosm_af_p = &cosm_af;
+
+		get_afs(context, offset, &af_p, &cosm_af_p);
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 			vt = context->bmi->itr_list[sample_idx].vtable;
@@ -746,7 +748,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 				if (v == NULL) {
 					dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
 				} else {
-					dump_vcounts(context, v, max_delete_size);
+					dump_vcounts(context, v, max_delete_size, af_p, cosm_af_p);
 				}
 			}
 
