@@ -410,31 +410,14 @@ void sort_vcounts(struct variant_table *vtable)
 }
 
 static
-int get_af(bcf_sr_t *reader, bcf1_t *line, float **af)
+void get_af(bcf_sr_t *reader, bcf1_t *line, float **af)
 {
-	// The call to bcf_get_info_float clobbers the stack for whatever reason!
-	// To avoid this, I use the heap as the destination of the received value.
-	float *af2 = malloc(sizeof(float));
-
-	int result, af_size = sizeof(**af);
-	result = bcf_get_info_float(
-			reader->header,
-			line,
-			"AF",
-			&af2,
-			&af_size);
-
-
-	if (result < 1) {
+	bcf_info_t *info = bcf_get_info(reader->header, line, "AF");
+	if (info == NULL) {
 		*af = NULL;
 	} else {
-		**af = *af2;
+		**af = info->v1.f;
 	}
-
-	free(af2);
-
-	return result;
-
 }
 
 static
