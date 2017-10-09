@@ -2,6 +2,7 @@
 
 void nmcalc(struct context *context, struct variant_table *v, struct nm_entry *out)
 {
+	(void) context;
 	out->pos = v->offset;
 	out->norm_read_depth = v->read_count_pass;
 

@@ -638,6 +638,8 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 static
 void dump_nmetrics(struct context *context, uint32_t offset, struct nm_entry avgs, int count)
 {
+	(void)count;
+
 	fprintf(context->nmetrics_file, "%d\t%d\t%g\t%g\t%g\t%g\n",
 			context->tid,
 			offset,
