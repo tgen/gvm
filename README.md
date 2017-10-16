@@ -4,10 +4,25 @@
 
 ### Dependencies
 
-* `htslib` (preferably a recent version)
+Make sure the following are installed on your system:
+
+* `autotools` (for building)
+* `htslib` (>=1.4.1)
 * `libyaml`
-* `uthash` (for building, bundled as submodule)
 * `gengetopts` (for building)
+
+The following dependencies are bundled as submodules:
+
+* `uthash`
+
+If you're on the dback cluster, running 
+
+```
+$ source ./setup.sh
+```
+
+will load the modules that satisfy these dependencies. If not, you have to
+install them yourself.
 
 ### Cloning
 
@@ -15,14 +30,30 @@ Make sure to use `--recursive` when cloning.
 
 ### Building
 
-If you're on the dback cluster, all you should need to do is run:
+#### Scripted
+
+Run the following:
 
 ```
 $ ./build.sh --init
 ```
 
 And everything should get built. The `gvm` executable should be placed
-in the `src` directory.
+in the `src` directory. If dependencies were not met, the configure step will
+fail and tell you to install something.
+
+You can supply ``--debug`` to build a debug version and ``--clean`` to remove
+all generated files.
+
+#### Manual
+
+Run
+
+```
+$ autoreconf --install
+$ ./configure
+$ make
+```
 
 ### Running
 
@@ -40,6 +71,8 @@ $ src/gvm -c <path to your config.yaml> -C <chromosome to run on>
 ```
 
 #### The slurm script
+
+**Note: only for dback cluster usage**
 
 There is also a slurm script to automate running gvm on every chromosome
 (1,2,...,22,X,Y) but you should change some of the variables in there to avoid
