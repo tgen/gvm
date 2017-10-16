@@ -454,11 +454,11 @@ void get_afs(	struct context *context,
 		if (bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
 			line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
 			pos = (uint32_t) line->pos;
-			if (pos == offset) {
+			if (pos+1 == offset) {
 				reader = &context->bcf_reader->readers[COSMIC_VCF_INDEX];
 				get_af(reader, line, cosm_af);
 			}
-			if (pos >= offset) {
+			if (pos+1 >= offset) {
 				cosm_done = 1;
 			}
 		}
