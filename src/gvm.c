@@ -427,32 +427,41 @@ void get_afs(	struct context *context,
 {
 	bcf1_t *line;
 	bcf_sr_t *reader;
+	int pop_done, cosm_done;
 
-	bcf_sr_seek(context->bcf_reader, context->target_name, offset);
-	bcf_sr_next_line(context->bcf_reader);
+	uint32_t pos;
 
-	if (bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
-		line = bcf_sr_get_line(context->bcf_reader, SNP_VCF_INDEX);
-		if ((uint32_t) line->pos == offset) {
-			reader = &context->bcf_reader->readers[SNP_VCF_INDEX];
-			get_af(reader, line, pop_af);
-		} else {
-			*pop_af = NULL;
+	bcf_sr_seek(context->bcf_reader, context->target_name, offset-1);
+
+	pop_done = 0;
+	cosm_done = 0;
+	while (!pop_done && !cosm_done) {
+		if (!bcf_sr_next_line(context->bcf_reader)) break;
+
+		if (bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
+			line = bcf_sr_get_line(context->bcf_reader, SNP_VCF_INDEX);
+			pos = (uint32_t) line->pos;
+			if (pos+1 == offset) {
+				reader = &context->bcf_reader->readers[SNP_VCF_INDEX];
+				get_af(reader, line, pop_af);
+			}
+
+			if (pos+1 >= offset) {
+				pop_done = 1;
+			}
 		}
-	} else {
-		*pop_af = NULL;
-	}
 
-	if (bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
-		line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
-		if ((uint32_t) line->pos == offset) {
-			reader = &context->bcf_reader->readers[COSMIC_VCF_INDEX];
-			get_af(reader, line, cosm_af);
-		} else {
-			*cosm_af = NULL;
+		if (bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
+			line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
+			pos = (uint32_t) line->pos;
+			if (pos == offset) {
+				reader = &context->bcf_reader->readers[COSMIC_VCF_INDEX];
+				get_af(reader, line, cosm_af);
+			}
+			if (pos >= offset) {
+				cosm_done = 1;
+			}
 		}
-	} else {
-		*cosm_af = NULL;
 	}
 
 }
