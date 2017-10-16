@@ -40,9 +40,10 @@ $ ./build.sh --init
 
 And everything should get built. The `gvm` executable should be placed
 in the `src` directory. If dependencies were not met, the configure step will
-fail and tell you to install something.
+fail and tell you to install something. You can omit the `--init` on subsequent
+runs of `build.sh`
 
-You can supply ``--debug`` to build a debug version and ``--clean`` to remove
+You can supply `--debug` to build a debug version and `--clean` to remove
 all generated files.
 
 #### Manual
