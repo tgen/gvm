@@ -421,42 +421,38 @@ void get_af(bcf_sr_t *reader, bcf1_t *line, float **af)
 }
 
 static
-void get_afs(	struct context *context,
-		uint32_t offset,
-		float **pop_af, float **cosm_af)
+void get_bcf_entries(	struct context *context,
+			uint32_t offset,
+			bcf1_t **pop_entry,
+			bcf1_t **cosm_entry)
 {
 	bcf1_t *line;
-	bcf_sr_t *reader;
 	int pop_done, cosm_done;
 
 	uint32_t pos;
 
-	bcf_sr_seek(context->bcf_reader, context->target_name, offset-1);
-
 	pop_done = 0;
 	cosm_done = 0;
+
 	while (!pop_done && !cosm_done) {
 		if (!bcf_sr_next_line(context->bcf_reader)) break;
 
-		if (bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
+		if (!pop_done && bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
 			line = bcf_sr_get_line(context->bcf_reader, SNP_VCF_INDEX);
 			pos = (uint32_t) line->pos;
 			if (pos+1 == offset) {
-				reader = &context->bcf_reader->readers[SNP_VCF_INDEX];
-				get_af(reader, line, pop_af);
+				*pop_entry = line;
 			}
-
 			if (pos+1 >= offset) {
 				pop_done = 1;
 			}
 		}
 
-		if (bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
+		if (!cosm_done && bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
 			line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
 			pos = (uint32_t) line->pos;
 			if (pos+1 == offset) {
-				reader = &context->bcf_reader->readers[COSMIC_VCF_INDEX];
-				get_af(reader, line, cosm_af);
+				*cosm_entry = line;
 			}
 			if (pos+1 >= offset) {
 				cosm_done = 1;
@@ -467,13 +463,64 @@ void get_afs(	struct context *context,
 }
 
 static
-float get_af_true(float *af_p, int is_mm)
+float get_af_true(	struct context *context,
+			int reader_index,
+			bcf1_t *entry,
+			struct alignment_report rep	)
 {
-	if (af_p == NULL) {
-		return is_mm ? settings.pv_freq : 1 - 3*settings.pv_freq;
-	} else {
-		return is_mm ? *af_p : 1 - *af_p;
+	int i, num_alleles, pv_freq_coeff;
+	uint32_t ref, alt;
+
+	float pv_freq, result;
+	bcf_info_t *info;
+	bcf_hdr_t *header;
+
+	pv_freq = settings.pv_freq;
+
+	if (entry == NULL) {
+		return is_mismatch(rep, context->ref_seq_info) ? pv_freq : 1 - 3*pv_freq;
 	}
+
+	header = context->bcf_reader->readers[reader_index].header;
+
+	num_alleles = entry->n_allele;
+
+	info = bcf_get_info(header, entry, "AF");
+	ref = str_to_b5seq(entry->d.allele[0]);
+
+	if (rep.data == ref) {
+		// if #alts <= 3, then calculate 1 - sum(AF) - (3 - #alts) * pv_freq
+		// otherwise,  calculate 1 - sum(AF)
+		result = 1;
+		pv_freq_coeff = 3;
+
+		for (i = 1; i < num_alleles; i++) {
+			result -= ((float *) info->vptr)[i-1];
+			pv_freq_coeff -= 1;
+		}
+
+		if (pv_freq_coeff < 0) pv_freq_coeff = 0;
+
+		result -= pv_freq_coeff * pv_freq;
+		return result;
+
+	} else {
+		// Loop through the alleles in entry and report the correct AF
+		// If there is no AF, use pv_freq
+
+		for (i = 1; i < num_alleles; i++) {
+			alt = str_to_b5seq(entry->d.allele[i]);
+			if (rep.data == alt) {
+				return ((float *) info->vptr)[i-1];
+			}
+		}
+
+		return pv_freq;
+	}
+
+	// Shouldn't be reached
+	assert(0);
+	return 0;
 
 }
 
@@ -549,20 +596,16 @@ static
 void dump_vcounts(	struct context *context,
 			struct variant_table *v,
 			int max_delete_size,
-			float *af_p,
-			float *cosm_af_p	)
+			bcf1_t *pop_entry,
+			bcf1_t *cosm_entry	)
 {
 	FILE *f = context->pos_file;
 	struct variant_counts *a = NULL, *b = NULL, dummy;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
-	int is_mm;
-
-	uint32_t ref_allele, ref_allele_partial;
-
 	float a_pop_af, b_pop_af, cosm_af;
 
-	cosm_af = cosm_af_p ? *cosm_af_p : 0;
+	uint32_t ref_allele, ref_allele_partial;
 
 	memset(&dummy, 0, sizeof(dummy));
 	dummy.total_mq = settings.default_mq;
@@ -600,11 +643,9 @@ void dump_vcounts(	struct context *context,
 	dump_variant_info(context, f, b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	is_mm = is_mismatch(a->report, context->ref_seq_info);
-	a_pop_af = get_af_true(af_p, is_mm);
-
-	is_mm = is_mismatch(b->report, context->ref_seq_info);
-	b_pop_af = get_af_true(af_p, is_mm);
+	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report);
+	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report);
+	cosm_af = 0.0f; // TODO
 
 	fprintf(f, "%g\t%g\t%g\t", a_pop_af, b_pop_af, cosm_af);
 
@@ -617,13 +658,11 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 {
 	struct variant_table vt = {0};
 
-	float af = 0, cosm_af = 0;
-
 	vt.sample_index = sample_idx;
 	vt.offset = offset;
 	vt.tid = context->tid;
 
-	dump_vcounts(context, &vt, max_delete_size, &af, &cosm_af);
+	dump_vcounts(context, &vt, max_delete_size, NULL, NULL);
 
 }
 
@@ -718,8 +757,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	struct nm_entry ent = {0};
 	struct nm_tbl tbl;
 
-	float af, cosm_af;
-	float *af_p, *cosm_af_p;
+	bcf1_t *pop_entry, *cosm_entry;
 
 	// clamp in region
 	if (begin < context->reg_start) begin = context->reg_start;
@@ -729,12 +767,9 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		max_delete_size = get_max_delete_size(context, offset);
 		if (max_delete_size < 0) continue;
 
-		af = 0;
-		af_p = &af;
-		cosm_af = 0;
-		cosm_af_p = &cosm_af;
-
-		get_afs(context, offset, &af_p, &cosm_af_p);
+		pop_entry = NULL;
+		cosm_entry = NULL;
+		get_bcf_entries(context, offset, &pop_entry, &cosm_entry);
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 			vt = context->bmi->itr_list[sample_idx].vtable;
@@ -744,7 +779,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 				if (v == NULL) {
 					dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
 				} else {
-					dump_vcounts(context, v, max_delete_size, af_p, cosm_af_p);
+					dump_vcounts(context, v, max_delete_size, pop_entry, cosm_entry);
 				}
 			}
 
@@ -1150,6 +1185,9 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	nm_query(context->nmi, start - 1, end);
 	nm_tbl_slurp(context->nmt, context->nmi);
+
+	// Seek the VCF reader to the beginning of the region
+	bcf_sr_seek(context->bcf_reader, context->target_name, start-1);
 
 	if (settings.output_pos || settings.output_nmetrics) {
 		// Main processing loop {{{
