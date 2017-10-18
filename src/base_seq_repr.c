@@ -43,8 +43,20 @@ uint32_t char_to_b5base(char next)
 	}
 }
 
+uint32_t str_to_b5seq(char *bstr)
+{
+	uint32_t result = 0;
+	char *c = bstr;
+	while (*c) {
+		result = seq_append(result, char_to_b5base(*c));
+		c++;
+	}
+
+	return result;
+}
+
 inline
-uint32_t seq_append(uint32_t seq, int base_val)
+uint32_t seq_append(uint32_t seq, uint32_t base_val)
 {
 	if (seq > INDEL_REPR_CUTOFF) {
 		return seq + 1;
