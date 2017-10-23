@@ -1400,8 +1400,6 @@ int main(int argc, char **argv) // {{{
 			regfn);
 
 	// Cleanup {{{
-
-
 #ifdef CLEANUP /* There's really no reason to free this right before termination */
 	bmi_destroy(bmi);
 	free(ref_seq_data);
