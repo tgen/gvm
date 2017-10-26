@@ -37,7 +37,7 @@ fi
 
 if [[ $debug ]]
 then
-	cflags="-O0 -DDEBUG"
+	cflags="-O0 -DDEBUG -DHASH_DEBUG=1"
 else
 	cflags="-DNDEBUG"
 fi
