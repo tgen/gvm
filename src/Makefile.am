@@ -5,7 +5,7 @@ gvm_SOURCES = bam_macro_funcs.h bam_multi_itr.h bedparse.h nmparse.h nmcalc.h ut
 
 BASE_FLAGS = -Wall -Wextra -pedantic --std=c11
 
-gvm_CFLAGS = $(BASE_FLAGS) -g -O3 
+gvm_CFLAGS = $(BASE_FLAGS) -g -O3
 gvm_CPPFLAGS = -DHASH_FUNCTION=HASH_BER -I@abs_top_srcdir@/lib/uthash/src/ 
 
 clean-local:
