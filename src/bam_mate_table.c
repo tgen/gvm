@@ -10,6 +10,7 @@
 struct bam_mate_table *bmt_register(	struct bam_mate_table *bmt,
 					bam1_t *bam,
 					bam1_t **out,
+					uint32_t sample_index,
 					int *cont )
 {
 	char *qname = bam_get_qname(bam);
@@ -50,6 +51,7 @@ struct bam_mate_table *bmt_register(	struct bam_mate_table *bmt,
 		existing = malloc(sizeof(struct bam_mate_table));
 		existing->qname = malloc(bam->core.l_qname + 1);
 		existing->bam = bam_dup1(bam);
+		existing->sample_index = sample_index;
 		strncpy(existing->qname, qname, bam->core.l_qname);
 		HASH_ADD_STR(bmt, qname, existing);
 	}

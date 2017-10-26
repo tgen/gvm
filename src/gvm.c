@@ -1197,7 +1197,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 			mbam = NULL;
 
 			if (!is_split_read(bam)) {
-				bmt = bmt_register(bmt, bam, &mbam, &result);
+				bmt = bmt_register(bmt, bam, &mbam, sample_index, &result);
 				if (result == 1) continue;
 			}
 
@@ -1227,6 +1227,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		context->mbam = NULL;
 		HASH_ITER(hh, bmt, left_behind, tmp) {
 			context->bam = left_behind->bam;
+			context->sample_index = left_behind->sample_index;
 			GVM_CALL_CALC_ALIGN(result);
 			GVM_CHECK_RESULT(result);
 		}
