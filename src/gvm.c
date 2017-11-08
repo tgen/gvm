@@ -466,7 +466,8 @@ static
 float get_af_true(	struct context *context,
 			int reader_index,
 			bcf1_t *entry,
-			struct alignment_report rep	)
+			struct alignment_report rep,
+			int cosmic_override	)
 {
 	int i, num_alleles, pv_freq_coeff;
 	uint32_t ref, alt;
@@ -477,9 +478,7 @@ float get_af_true(	struct context *context,
 
 	pv_freq = settings.pv_freq;
 
-	if (entry == NULL) {
-		return is_mismatch(rep, context->ref_seq_info) ? pv_freq : 1 - 3*pv_freq;
-	}
+	if (entry == NULL) goto no_af;
 
 	header = context->bcf_reader->readers[reader_index].header;
 
@@ -487,6 +486,13 @@ float get_af_true(	struct context *context,
 
 	info = bcf_get_info(header, entry, "AF");
 	ref = str_to_b5seq(entry->d.allele[0]);
+
+	if (info == NULL) goto no_af;
+
+	if (cosmic_override) {
+		printf("comsic alleles: %d\n", num_alleles);
+		return ((float *) info->vptr)[0];
+	}
 
 	if (rep.data == ref) {
 		// if #alts <= 3, then calculate 1 - sum(AF) - (3 - #alts) * pv_freq
@@ -522,6 +528,13 @@ float get_af_true(	struct context *context,
 	assert(0);
 	return 0;
 
+no_af:
+
+	if (cosmic_override) {
+		return 0.0f;
+	}
+
+	return is_mismatch(rep, context->ref_seq_info) ? pv_freq : 1 - 3*pv_freq;
 }
 
 static
@@ -643,9 +656,10 @@ void dump_vcounts(	struct context *context,
 	dump_variant_info(context, f, b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report);
-	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report);
-	cosm_af = 0.0f; // TODO
+	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report, 0);
+	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report, 0);
+
+	cosm_af = get_af_true(context, COSMIC_VCF_INDEX, cosm_entry, a->report, 1);
 
 	fprintf(f, "%g\t%g\t%g\t", a_pop_af, b_pop_af, cosm_af);
 
