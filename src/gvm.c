@@ -462,6 +462,10 @@ void get_bcf_entries(	struct context *context,
 
 }
 
+// The cosmic override refers to the possibility that we are reading from a
+// cosmic VCF. If this is the case, much of the logic here is completely
+// irrelevant. This is reflected by the checks for the override and early
+// returns.
 static
 float get_af_true(	struct context *context,
 			int reader_index,
