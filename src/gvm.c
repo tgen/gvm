@@ -972,7 +972,9 @@ int config_read(const char *cfg_fn, struct settings *s)
 
 	/* FSM */
 	int state = 0; /* 0 = need key, 1 = need value */
+
 	char value_buf[1024];
+	char *option_value;
 
 	if (f == NULL) {
 		err_printf("could not open config %s: ", cfg_fn);
@@ -1017,14 +1019,16 @@ int config_read(const char *cfg_fn, struct settings *s)
 			fprintf(stderr, "Warning: no alias support (anchor %s)\n", event.data.alias.anchor);
 			break;
 		case YAML_SCALAR_EVENT:
+			option_value = (char *) event.data.scalar.value;
 			if (state == 0) { /* This means we need a key */
-				strncpy(value_buf, (char *)event.data.scalar.value, sizeof(value_buf));
+				strncpy(value_buf, option_value, sizeof(value_buf));
 				state = 1;
 			} else { /* We have a key, now we need a value */
-				if (!config_try_set_option(value_buf, (char *) event.data.scalar.value, s)) {
+				if (!config_try_set_option(value_buf, option_value, s)) {
 					result = 0;
 					goto done1;
 				}
+
 				state = 0;
 			}
 
