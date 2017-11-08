@@ -494,7 +494,6 @@ float get_af_true(	struct context *context,
 	if (info == NULL) goto no_af;
 
 	if (cosmic_override) {
-		printf("comsic alleles: %d\n", num_alleles);
 		return ((float *) info->vptr)[0];
 	}
 
