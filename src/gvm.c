@@ -488,13 +488,15 @@ float get_af_true(	struct context *context,
 
 	num_alleles = entry->n_allele;
 
-	info = bcf_get_info(header, entry, "AF");
+	info = bcf_get_info(header, entry, cosmic_override ? "CNT" : "AF");
 	ref = str_to_b5seq(entry->d.allele[0]);
 
 	if (info == NULL) goto no_af;
 
 	if (cosmic_override) {
-		return ((float *) info->vptr)[0];
+		// info->vptr[0] is an int, but this function returns float so
+		// I cast it.
+		return (float) info->vptr[0];
 	}
 
 	if (rep.data == ref) {
@@ -619,7 +621,8 @@ void dump_vcounts(	struct context *context,
 	struct variant_counts *a = NULL, *b = NULL, dummy;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
-	float a_pop_af, b_pop_af, cosm_af;
+	float a_pop_af, b_pop_af;
+	int cosm_count;
 
 	uint32_t ref_allele, ref_allele_partial;
 
@@ -662,9 +665,10 @@ void dump_vcounts(	struct context *context,
 	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report, 0);
 	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report, 0);
 
-	cosm_af = get_af_true(context, COSMIC_VCF_INDEX, cosm_entry, a->report, 1);
+	// notice the last parameter becomes 1 because cosmic
+	cosm_count = (int) get_af_true(context, COSMIC_VCF_INDEX, cosm_entry, a->report, 1);
 
-	fprintf(f, "%g\t%g\t%g\t", a_pop_af, b_pop_af, cosm_af);
+	fprintf(f, "%g\t%g\t%d\t", a_pop_af, b_pop_af, cosm_count);
 
 	dump_nm_data(context, v->offset);
 	fprintf(f, "\n");
