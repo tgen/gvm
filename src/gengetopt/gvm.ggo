@@ -3,6 +3,6 @@ Note the use of the chromosome name.
 "
 
 option "conf" c "specifies the YAML configuration file to be used" string typestr="filename"
-option "chr" C "specifies the chromosome to be targetted" string typestr="chromosome name"
+option "chr" C "specifies the chromosome to be targeted" string typestr="chromosome name"
 option "verbose" V "prints out more information" optional
 option "exon-only" E "generates only the exon files" flag off
