@@ -24,6 +24,7 @@
 #include "cigar.h"
 #include "bam_multi_itr.h"
 #include "bam_mate_table.h"
+#include "cosmvcf.h"
 
 #include "gengetopt/cmdline.h"
 
@@ -462,16 +463,11 @@ void get_bcf_entries(	struct context *context,
 
 }
 
-// The cosmic override refers to the possibility that we are reading from a
-// cosmic VCF. If this is the case, much of the logic here is completely
-// irrelevant. This is reflected by the checks for the override and early
-// returns.
 static
 float get_af_true(	struct context *context,
 			int reader_index,
 			bcf1_t *entry,
-			struct alignment_report rep,
-			int cosmic_override	)
+			struct alignment_report rep)
 {
 	int i, num_alleles, pv_freq_coeff;
 	uint32_t ref, alt;
@@ -488,16 +484,10 @@ float get_af_true(	struct context *context,
 
 	num_alleles = entry->n_allele;
 
-	info = bcf_get_info(header, entry, cosmic_override ? "CNT" : "AF");
+	info = bcf_get_info(header, entry, "AF");
 	ref = str_to_b5seq(entry->d.allele[0]);
 
 	if (info == NULL) goto no_af;
-
-	if (cosmic_override) {
-		// info->vptr[0] is an int, but this function returns float so
-		// I cast it.
-		return (float) info->vptr[0];
-	}
 
 	if (rep.data == ref) {
 		// if #alts <= 3, then calculate 1 - sum(AF) - (3 - #alts) * pv_freq
@@ -534,16 +524,11 @@ float get_af_true(	struct context *context,
 	return 0;
 
 no_af:
-
-	if (cosmic_override) {
-		return 0.0f;
-	}
-
 	return is_mismatch(rep, context->ref_seq_info) ? pv_freq : 1 - 3*pv_freq;
 }
 
 static
-void dump_variant_info(	struct context *context,
+uint32_t dump_variant_info(	struct context *context,
 			FILE *f,
 			struct variant_counts *vc,
 			uint32_t ref_allele_partial)
@@ -585,6 +570,8 @@ void dump_variant_info(	struct context *context,
 			(double) vc->total_read_pos / total);
 #undef VARIANT_TYPE_FORMAT
 #undef VARIANT_TYPE
+
+	return read;
 }
 
 static
@@ -622,9 +609,10 @@ void dump_vcounts(	struct context *context,
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
 	float a_pop_af, b_pop_af;
-	int cosm_count;
+	int cosm_count_a, cosm_count_b, cosm_count_real;
 
 	uint32_t ref_allele, ref_allele_partial;
+	uint32_t a_alt, b_alt;
 
 	memset(&dummy, 0, sizeof(dummy));
 	dummy.total_mq = settings.default_mq;
@@ -657,18 +645,19 @@ void dump_vcounts(	struct context *context,
 		v->read_count_pass,
 		ref_allele);
 
-	dump_variant_info(context, f, a, ref_allele_partial);
+	a_alt = dump_variant_info(context, f, a, ref_allele_partial);
 	fprintf(f, "\t");
-	dump_variant_info(context, f, b, ref_allele_partial);
+	b_alt = dump_variant_info(context, f, b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report, 0);
-	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report, 0);
+	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report);
+	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report);
 
-	// notice the last parameter becomes 1 because cosmic
-	cosm_count = (int) get_af_true(context, COSMIC_VCF_INDEX, cosm_entry, a->report, 1);
+	cosm_count_a = get_cosmic_count(v->offset, a_alt);
+	cosm_count_b = get_cosmic_count(v->offset, b_alt);
+	cosm_count_real = MAX(0, MAX(cosm_count_a, cosm_count_b));
 
-	fprintf(f, "%g\t%g\t%d\t", a_pop_af, b_pop_af, cosm_count);
+	fprintf(f, "%g\t%g\t%d\t", a_pop_af, b_pop_af, cosm_count_real);
 
 	dump_nm_data(context, v->offset);
 	fprintf(f, "\n");
@@ -1374,6 +1363,9 @@ int main(int argc, char **argv) // {{{
 		err_printf("error: %s\n", bcf_sr_strerror(context.bcf_reader->errnum));
 		return EXIT_FAILURE;
 	}
+
+	verbose_fprintf(stderr, "Loading cosmic count data...\n")
+	load_cosmic_table(settings.cosm_vcf_path, settings.chromosome);
 
 	result = bcf_sr_add_reader(context.bcf_reader, settings.cosm_vcf_path);
 	if (result == 0) {
