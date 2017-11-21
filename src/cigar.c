@@ -147,20 +147,26 @@ int calc_alignments(	bam1_t *bam,
 
 	uint32_t offset_backup, seq_index_backup;
 
+	/* Loop through the cigar string and process each operation and its operand */
 	for (cigar_ptr = cigar_data, i = 0; i < cigar_len; i++, cigar_ptr++) {
-		/* I need to run the run_cigar function twice- first time to calculate the
-		 * pmm, next time to actually report all the matches. Therefore, these two
-		 * values need to be backed up */
-
+		/* The next cigar operation is important for the run_cigar function to
+		 * generate accurate reports. This could be determined by the run_cigar
+		 * function but I wanted to keep this logic out of that. */
 		if (i < cigar_len - 1) {
 			cigar_nextop = *(cigar_ptr + 1);
 		} else {
 			cigar_nextop = 0;
 		}
 
+		/* I need to run the run_cigar function twice- first time to calculate the
+		 * pmm, next time to actually report all the matches. Therefore, these two
+		 * values need to be backed up */
 		offset_backup = offset;
 		seq_index_backup = seq_index;
 
+		/* Note: both `ref_seq_info` and `bam` could be determined from
+		 * `context` in this case. However, `context` is opaque to
+		 * `run_cigar`, so I pass those two variables in separately. */
 		result = run_cigar(
 			bam,
 			ref_seq_info,
