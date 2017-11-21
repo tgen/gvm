@@ -953,7 +953,7 @@ int config_try_set_option(char *option, char *value, struct settings *s)
 		return 1;
 	}
 
-	return 1;
+	return 2;
 
 }
 
@@ -961,6 +961,7 @@ int config_read(const char *cfg_fn, struct settings *s)
 {
 	FILE *f = fopen(cfg_fn, "r");
 	int result = 1;
+	int set_result;
 
 	/* FSM */
 	int state = 0; /* 0 = need key, 1 = need value */
@@ -1016,9 +1017,19 @@ int config_read(const char *cfg_fn, struct settings *s)
 				strncpy(value_buf, option_value, sizeof(value_buf));
 				state = 1;
 			} else { /* We have a key, now we need a value */
-				if (!config_try_set_option(value_buf, option_value, s)) {
+
+				// 0 indicates failure
+				// 1 indicates success and option set
+				// 2 indicates success and option ignored
+				set_result = config_try_set_option(value_buf, option_value, s);
+
+				if (set_result == 0) {
 					result = 0;
 					goto done1;
+				}
+
+				if (set_result == 1) {
+					verbose_fprintf(stderr, "  config: %s = %s\n", value_buf, option_value);
 				}
 
 				state = 0;
@@ -1295,12 +1306,12 @@ int main(int argc, char **argv) // {{{
 	settings.output_nmetrics = 0;
 	settings.verbose = args_info.verbose_given;
 
+	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
+	verbose_fprintf(stderr, "Chromosome: %s\n", settings.chromosome);
+
 	if (!config_read(settings.conf_path, &settings)) {
 		return EXIT_FAILURE;
 	}
-
-	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
-	verbose_fprintf(stderr, "Chromosome: %s\n", settings.chromosome);
 
 	cmdline_parser_free(&args_info);
 
