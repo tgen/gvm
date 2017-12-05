@@ -411,31 +411,18 @@ void sort_vcounts(struct variant_table *vtable)
 }
 
 static
-void get_af(bcf_sr_t *reader, bcf1_t *line, float **af)
-{
-	bcf_info_t *info = bcf_get_info(reader->header, line, "AF");
-	if (info == NULL) {
-		*af = NULL;
-	} else {
-		**af = info->v1.f;
-	}
-}
-
-static
 void get_bcf_entries(	struct context *context,
 			uint32_t offset,
-			bcf1_t **pop_entry,
-			bcf1_t **cosm_entry)
+			bcf1_t **pop_entry)
 {
 	bcf1_t *line;
-	int pop_done, cosm_done;
+	int pop_done;
 
 	uint32_t pos;
 
 	pop_done = 0;
-	cosm_done = 0;
 
-	while (!pop_done && !cosm_done) {
+	while (!pop_done) {
 		if (!bcf_sr_next_line(context->bcf_reader)) break;
 
 		if (!pop_done && bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
@@ -446,17 +433,6 @@ void get_bcf_entries(	struct context *context,
 			}
 			if (pos+1 >= offset) {
 				pop_done = 1;
-			}
-		}
-
-		if (!cosm_done && bcf_sr_has_line(context->bcf_reader, COSMIC_VCF_INDEX)) {
-			line = bcf_sr_get_line(context->bcf_reader, COSMIC_VCF_INDEX);
-			pos = (uint32_t) line->pos;
-			if (pos+1 == offset) {
-				*cosm_entry = line;
-			}
-			if (pos+1 >= offset) {
-				cosm_done = 1;
 			}
 		}
 	}
@@ -601,8 +577,7 @@ static
 void dump_vcounts(	struct context *context,
 			struct variant_table *v,
 			int max_delete_size,
-			bcf1_t *pop_entry,
-			bcf1_t *cosm_entry	)
+			bcf1_t *pop_entry	)
 {
 	FILE *f = context->pos_file;
 	struct variant_counts *a = NULL, *b = NULL, dummy;
@@ -672,7 +647,7 @@ void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t o
 	vt.offset = offset;
 	vt.tid = context->tid;
 
-	dump_vcounts(context, &vt, max_delete_size, NULL, NULL);
+	dump_vcounts(context, &vt, max_delete_size, NULL);
 
 }
 
@@ -767,7 +742,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	struct nm_entry ent = {0};
 	struct nm_tbl tbl;
 
-	bcf1_t *pop_entry, *cosm_entry;
+	bcf1_t *pop_entry;
 
 	// clamp in region
 	if (begin < context->reg_start) begin = context->reg_start;
@@ -778,8 +753,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		if (max_delete_size < 0) continue;
 
 		pop_entry = NULL;
-		cosm_entry = NULL;
-		get_bcf_entries(context, offset, &pop_entry, &cosm_entry);
+		get_bcf_entries(context, offset, &pop_entry);
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 			vt = context->bmi->itr_list[sample_idx].vtable;
@@ -789,7 +763,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 				if (v == NULL) {
 					dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
 				} else {
-					dump_vcounts(context, v, max_delete_size, pop_entry, cosm_entry);
+					dump_vcounts(context, v, max_delete_size, pop_entry);
 				}
 			}
 
