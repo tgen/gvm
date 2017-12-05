@@ -984,7 +984,7 @@ int config_read(const char *cfg_fn, struct settings *s)
 			break;
 
 		case YAML_ALIAS_EVENT:
-			fprintf(stderr, "Warning: no alias support (anchor %s)\n", event.data.alias.anchor);
+			err_printf("Warning: no alias support (anchor %s)\n", event.data.alias.anchor);
 			break;
 		case YAML_SCALAR_EVENT:
 			option_value = (char *) event.data.scalar.value;
