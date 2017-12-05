@@ -65,7 +65,8 @@ struct settings {
 		 output_exon:1,
 		 output_nmetrics:1,
 		 verbose:1,
-		 dummy:28;
+		 use_bed:1,
+		 dummy:27;
 
 	uint32_t min_mq;
 	uint32_t min_bq;
@@ -1251,6 +1252,34 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	return 1;
 } // }}}
 
+static
+int try_parse_region(char *regstr, uint32_t *begin, uint32_t *end)
+{
+	char *endptr;
+	*begin = strtoul(regstr, &endptr, 0);
+	if (endptr == regstr) {
+		// Could not parse
+		return 0;
+	}
+
+	if (*endptr != '-') {
+		return 0;
+	}
+
+	regstr = endptr+1;
+	*end = strtoul(regstr, &endptr, 0);
+
+	if (endptr == regstr) {
+		return 0;
+	}
+
+	if (*endptr != '\0') {
+		return 0;
+	}
+
+	return 1;
+}
+
 #undef GVM_CALL_CALC_ALIGN
 #undef GVM_CHECK_RESULT
 
@@ -1264,11 +1293,27 @@ int main(int argc, char **argv) // {{{
 	struct bam_multi_itr *bmi;
 	struct nm_itr *nmi;
 	struct context context;
+
+	// The region specified on the commandline
+	uint32_t cmdline_region_start, cmdline_region_end;
+
 	region_handle_func regfn;
 
 	// Command line settings {{{
 	if (cmdline_parser(argc, argv, &args_info) != 0) {
 		return EXIT_FAILURE;
+	}
+
+	settings.use_bed = 1;
+	cmdline_region_start = 0;
+	cmdline_region_end = 0;
+	if (args_info.region_given) {
+		if (!try_parse_region(args_info.region_arg, &cmdline_region_start, &cmdline_region_end)) {
+			err_printf("Unable to parse region string %s\n", args_info.region_arg);
+			return EXIT_FAILURE;
+		}
+
+		settings.use_bed = 0;
 	}
 
 	strncpy(settings.conf_path, args_info.conf_arg, sizeof(settings.conf_path));
@@ -1396,11 +1441,15 @@ int main(int argc, char **argv) // {{{
 
 	regfn = (region_handle_func) do_region;
 
-	bedf_forall_region_chr(
-			&context,
-			settings.bed_file,
-			settings.chromosome,
-			regfn);
+	if (settings.use_bed) {
+		bedf_forall_region_chr(
+				&context,
+				settings.bed_file,
+				settings.chromosome,
+				regfn);
+	} else {
+		regfn(&context, cmdline_region_start, cmdline_region_end);
+	}
 
 	// Cleanup {{{
 #ifdef CLEANUP /* There's really no reason to free this right before termination */

@@ -6,3 +6,4 @@ option "conf" c "specifies the YAML configuration file to be used" string typest
 option "chr" C "specifies the chromosome to be targeted" string typestr="chromosome name"
 option "verbose" V "prints out more information" optional
 option "exon-only" E "generates only the exon files" flag off
+option "region" r "ignore bed file and use this region (for example -r 1000-20000)" optional string typestr="start-end"
