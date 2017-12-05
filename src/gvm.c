@@ -462,7 +462,15 @@ float get_af_true(	struct context *context,
 	num_alleles = entry->n_allele;
 
 	info = bcf_get_info(header, entry, "AF");
-	ref = str_to_b5seq(entry->d.allele[0]);
+
+	// this macro takes an allele and returns something
+	// that can be compared with the report data
+#define NORMALIZE_ALLELE(rep, al) \
+		( (rep).align_type == at_single ? \
+			char_to_b5base( (al)[0] ) : \
+			str_to_b5seq( (al) ) )
+
+	ref = NORMALIZE_ALLELE(rep, entry->d.allele[0]);
 
 	if (info == NULL) goto no_af;
 
@@ -487,7 +495,7 @@ float get_af_true(	struct context *context,
 		// If there is no AF, use pv_freq
 
 		for (i = 1; i < num_alleles; i++) {
-			alt = str_to_b5seq(entry->d.allele[i]);
+			alt = NORMALIZE_ALLELE(rep, entry->d.allele[i]);
 			if (rep.data == alt) {
 				return ((float *) info->vptr)[i-1];
 			}
@@ -503,6 +511,7 @@ float get_af_true(	struct context *context,
 no_af:
 	return is_mismatch(rep, context->ref_seq_info) ? pv_freq : 1 - 3*pv_freq;
 }
+#undef NORMALIZE_ALLELE
 
 static
 uint32_t dump_variant_info(	struct context *context,
