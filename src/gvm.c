@@ -282,7 +282,7 @@ void record_match(	struct context *context,
 		/* check if this is a mismatch */
 		if (is_mismatch(rep, context->ref_seq_info)) {
 			vtentry->mismatch_count++;
-		}// else printf("\n");
+		}
 
 		/* Update the entry */
 		struct variant_counts *vcounts_table = vtentry->counts;
