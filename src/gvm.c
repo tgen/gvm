@@ -423,8 +423,17 @@ void get_bcf_entries(	struct context *context,
 
 	pop_done = 0;
 
+	// TODO: figure out return values for this function and handle errors
+	// properly
+	bcf_sr_seek(context->bcf_reader, context->target_name, offset - 1);
+
 	while (!pop_done) {
-		if (!bcf_sr_next_line(context->bcf_reader)) break;
+		if (!bcf_sr_next_line(context->bcf_reader)) {
+			if (context->bcf_reader->errnum) {
+				err_printf("vcf error: %s\n", bcf_sr_strerror(context->bcf_reader->errnum));
+			}
+			break;
+		}
 
 		if (!pop_done && bcf_sr_has_line(context->bcf_reader, SNP_VCF_INDEX)) {
 			line = bcf_sr_get_line(context->bcf_reader, SNP_VCF_INDEX);
@@ -594,10 +603,11 @@ void dump_vcounts(	struct context *context,
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
 	float a_pop_af, b_pop_af;
-	int cosm_count_a, cosm_count_b, cosm_count_real;
 
 	uint32_t ref_allele, ref_allele_partial;
 	uint32_t a_alt, b_alt;
+
+	int32_t cosm_count_a, cosm_count_b, cosm_count_real;
 
 	memset(&dummy, 0, sizeof(dummy));
 	dummy.total_mq = settings.default_mq;
