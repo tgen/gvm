@@ -62,7 +62,7 @@ uint32_t seq_append(uint32_t seq, uint32_t base_val)
 		return seq + 1;
 	}
 
-	uint32_t attempt = seq * 5 + base_val;
+	uint64_t attempt = (uint64_t) seq * 5 + base_val;
 	if (attempt > INDEL_REPR_CUTOFF) {
 		return INDEL_REPR_CUTOFF + INDEL_REPR_LEN_CUTOFF;
 	}
