@@ -96,7 +96,7 @@ uint32_t seq_append2(uint32_t seq, uint32_t o_seq)
 		}
 
 		if (seq_len + o_seq_len > INDEL_REPR_LEN_CUTOFF) {
-			return INDEL_REPR_CUTOFF + seq_len + o_seq_len;
+			return INDEL_REPR_CUTOFF + seq_len + o_seq_len - 1;
 		} else {
 			while (o_seq_len-- > 0) seq *= 5;
 
