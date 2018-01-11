@@ -1102,6 +1102,7 @@ int open_out_files(struct context *context)
 {
 	char *pos_fn, *exon_fn;
 	FILE *pos_file, *exon_file;
+	int cannot_continue = 0;
 
 	if (settings.output_pos) {
 		pos_fn = malloc(strlen(settings.out_name) +
@@ -1120,8 +1121,9 @@ int open_out_files(struct context *context)
 		pos_file = fopen(pos_fn, "w");
 #endif
 		if (pos_file == NULL) {
-			err_printf("unable to open %s", pos_fn);
+			err_printf("unable to open %s:", pos_fn);
 			perror("");
+			cannot_continue = 1;
 		}
 
 		free(pos_fn);
@@ -1144,13 +1146,18 @@ int open_out_files(struct context *context)
 
 		exon_file = fopen(exon_fn, "w");
 		if (exon_file == NULL) {
-			err_printf("unable to open %s", exon_fn);
+			err_printf("unable to open %s:", exon_fn);
 			perror("");
+			cannot_continue = 1;
 		}
 
 		free(exon_fn);
 	} else {
 		exon_file = NULL;
+	}
+
+	if (cannot_continue) {
+		return 1;
 	}
 
 	context->pos_file = pos_file;
