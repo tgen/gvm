@@ -425,7 +425,7 @@ void get_bcf_entries(	struct context *context,
 
 	// TODO: figure out return values for this function and handle errors
 	// properly
-	bcf_sr_seek(context->bcf_reader, context->target_name, offset - 100);
+	bcf_sr_seek(context->bcf_reader, context->target_name, offset);
 
 	while (!pop_done) {
 		if (!bcf_sr_next_line(context->bcf_reader)) {
