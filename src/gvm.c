@@ -1423,13 +1423,6 @@ int main(int argc, char **argv) // {{{
 	verbose_fprintf(stderr, "Loading cosmic count data...\n")
 	load_cosmic_table(settings.cosm_vcf_path, settings.chromosome);
 
-	result = bcf_sr_add_reader(context.bcf_reader, settings.cosm_vcf_path);
-	if (result == 0) {
-		err_printf("failed to load cosmic VCF: %s\n", settings.cosm_vcf_path);
-		err_printf("error: %s\n", bcf_sr_strerror(context.bcf_reader->errnum));
-		return EXIT_FAILURE;
-	}
-
 	free(snp_vcf_fname);
 	// }}}
 
