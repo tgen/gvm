@@ -1213,7 +1213,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	nm_tbl_slurp(context->nmt, context->nmi);
 
 	// Seek the VCF reader to the beginning of the region
-	bcf_sr_seek(context->bcf_reader, context->target_name, start-1);
+	bcf_sr_seek(context->bcf_reader, context->target_name, start);
 
 	if (settings.output_pos || settings.output_nmetrics) {
 		// Main processing loop {{{
