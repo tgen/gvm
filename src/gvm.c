@@ -1411,7 +1411,7 @@ int main(int argc, char **argv) // {{{
 	strcat(snp_vcf_fname, settings.chromosome);
 	strcat(snp_vcf_fname, settings.snp_vcf_name);
 
-	bcf_sr_set_regions(context.bcf_reader, settings.chromosome, 0);
+	bcf_sr_set_regions(context.bcf_reader, settings.bed_file, 1);
 
 	result = bcf_sr_add_reader(context.bcf_reader, snp_vcf_fname);
 	if (result == 0) {
