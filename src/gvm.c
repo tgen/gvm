@@ -102,9 +102,6 @@ struct context {
 	int tid;
 	char *target_name;
 
-	struct nm_itr *nmi;
-	struct nm_tbl *nmt;
-
 	FILE *pos_file;
 	FILE *exon_file;
 	FILE *nmetrics_file;
@@ -575,7 +572,9 @@ void dump_nm_data(	struct context *context,
 {
 	FILE *f = context->pos_file;
 
-	struct nm_tbl *nmt = context->nmt;
+	struct bam_multi_itr *bmi = context->bmi;
+
+	struct nm_tbl *nmt = bmi->itr_list[context->sample_index].nmt;
 	struct nm_entry *ent = nm_tbl_get(nmt, offset);
 
 	if (ent == NULL) {
@@ -659,11 +658,11 @@ void dump_vcounts(	struct context *context,
 }
 
 static
-void dump_blank_vcounts(struct context *context, uint32_t sample_idx, uint32_t offset, int max_delete_size)
+void dump_blank_vcounts(struct context *context, uint32_t offset, int max_delete_size)
 {
 	struct variant_table vt = {0};
 
-	vt.sample_index = sample_idx;
+	vt.sample_index = context->sample_index;
 	vt.offset = offset;
 	vt.tid = context->tid;
 
@@ -776,12 +775,13 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		get_bcf_entries(context, offset, &pop_entry);
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
+			context->sample_index = sample_idx;
 			vt = context->bmi->itr_list[sample_idx].vtable;
 
 			HASH_FIND_INT(vt, &offset, v);
 			if (settings.output_pos) {
 				if (v == NULL) {
-					dump_blank_vcounts(context, sample_idx, offset, max_delete_size);
+					dump_blank_vcounts(context, offset, max_delete_size);
 				} else {
 					dump_vcounts(context, v, max_delete_size, pop_entry);
 				}
@@ -1062,7 +1062,7 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 
 	exon_file = context->exon_file;
 	bmi = context->bmi;
-	avgs = context->nmt->avgs;
+	avgs = bmi->itr_list[context->sample_index].nmt->avgs;
 
 
 	for (i = 0; i < bmi->num_iters; i++) {
@@ -1204,13 +1204,11 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	bam1_t *bam, *mbam;
 
-	context->nmt = nm_tbl_create();
-
 	context->reg_start = start;
 	context->reg_end = end;
 
-	nm_query(context->nmi, start - 1, end);
-	nm_tbl_slurp(context->nmt, context->nmi);
+	//nm_query(context->nmi, start - 1, end);
+	//nm_tbl_slurp(context->nmt, context->nmi);
 
 	// Seek the VCF reader to the beginning of the region
 	bcf_sr_seek(context->bcf_reader, context->target_name, start);
@@ -1268,9 +1266,6 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	}
 
 	bmt_destroy(bmt);
-	nm_tbl_destroy(context->nmt);
-
-	nm_cleanup(context->nmi);
 	bmi_cleanup(bmi);
 
 	//fflush(context->pos_file);
@@ -1317,7 +1312,6 @@ int main(int argc, char **argv) // {{{
 	int len, result, tid;
 	struct ref_seq ref_seq_info;
 	struct bam_multi_itr *bmi;
-	struct nm_itr *nmi;
 	struct context context;
 
 	// The region specified on the commandline
@@ -1363,7 +1357,7 @@ int main(int argc, char **argv) // {{{
 	// }}}
 
 	// BAM file loading {{{
-	bmi = bmi_create(settings.bam_list);
+	bmi = bmi_create(settings.bam_list, settings.normal_base_path, settings.chromosome);
 	if (bmi == NULL) {
 		return EXIT_FAILURE;
 	}
@@ -1426,22 +1420,6 @@ int main(int argc, char **argv) // {{{
 	free(snp_vcf_fname);
 	// }}}
 
-	// Normal metrics loading {{{
-	char *normal_path = malloc(strlen(settings.normal_base_path) +
-				strlen(settings.chromosome) +
-				strlen(".txt.gz") + 1);
-
-	strcpy(normal_path, settings.normal_base_path);
-	strcat(normal_path, settings.chromosome);
-	strcat(normal_path, ".txt.gz");
-
-	nmi = nm_open(normal_path, 0);
-
-	free(normal_path);
-
-
-	// }}}
-
 	if (open_out_files(&context) != 0) {
 		return EXIT_FAILURE;
 	}
@@ -1451,7 +1429,6 @@ int main(int argc, char **argv) // {{{
 	context.bmi = bmi;
 	context.tid = tid;
 	context.target_name = settings.chromosome;
-	context.nmi = nmi;
 
 	if (context.tid == -1) {
 		err_printf("warning: no bam files loaded\n");
@@ -1476,7 +1453,6 @@ int main(int argc, char **argv) // {{{
 	free(ref_seq_data);
 	fai_destroy(ref_idx);
 	bcf_sr_destroy(context.bcf_reader);
-	nm_destroy(context.nmi);
 
 	if (context->pos_file != NULL) {
 		fclose(context->pos_file);

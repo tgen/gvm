@@ -5,7 +5,8 @@
 #include <assert.h>
 
 
-#include "htslib/sam.h"
+#include <htslib/sam.h>
+#include <uthash.h>
 
 #include "utils.h"
 #include "variant_table.h"
@@ -25,8 +26,45 @@ void bmi_cleanup(struct bam_multi_itr *bmi)
 		destroy_variant_table(s->vtable);
 		s->vtable = NULL;
 		s->used = 1;
+
+		if (bmi->nm_itr_list[i]) {
+			nm_cleanup(bmi->nm_itr_list[i]);
+		}
+		if (bmi->nm_tbl_list[i]) {
+			nm_tbl_destroy(bmi->nm_tbl_list[i]);
+			bmi->nm_tbl_list[i] = NULL;
+		}
 	}
 
+}
+
+static
+void bmi_nm_slurp(struct bam_multi_itr *bmi, uint32_t start, uint32_t end)
+{
+	int i, j;
+	struct nm_itr *itr;
+	struct nm_tbl *tbl;
+	for (i = 0; i < bmi->num_iters; i++) {
+		itr = bmi->nm_itr_list[i];
+		tbl = bmi->nm_tbl_list[i];
+		if (tbl) nm_tbl_destroy(tbl);
+
+		if (itr == NULL) continue;
+
+		nm_query(itr, start, end);
+		tbl = nm_tbl_create();
+		nm_tbl_slurp(tbl, itr);
+
+		bmi->nm_tbl_list[i] = tbl;
+
+		// now look for iterators in bmi that use this normal metrics
+		// file and set their table to `tbl`
+		for (j = 0; j < bmi->num_iters; j++) {
+			if (bmi->itr_list[j].nmi == itr) {
+				bmi->itr_list[j].nmt = tbl;
+			}
+		}
+	}
 }
 
 void bmi_destroy(struct bam_multi_itr *bmi)
@@ -42,13 +80,60 @@ void bmi_destroy(struct bam_multi_itr *bmi)
 		if (s->hdr) bam_hdr_destroy(s->hdr);
 		if (s->f) sam_close(s->f);
 		if (s->buf) bam_destroy1(s->buf);
+		if (bmi->nm_itr_list[i]) nm_destroy(bmi->nm_itr_list[i]);
 	}
 
 	free(bmi->itr_list);
+	free(bmi->nm_itr_list);
+	free(bmi->nm_tbl_list);
 	free(bmi);
 }
 
-struct bam_multi_itr *bmi_create(const char *bam_files_fn)
+static
+struct nm_itr *load_normal_metrics(const char *base_path, const char *chromosome)
+{
+	char *normal_path = malloc(strlen(base_path) +
+				strlen(chromosome) +
+				strlen(".txt.gz") + 1);
+
+	struct nm_itr *nmi;
+
+	strcpy(normal_path, base_path);
+	strcat(normal_path, chromosome);
+	strcat(normal_path, ".txt.gz");
+
+	nmi = nm_open(normal_path, 0);
+
+	free(normal_path);
+
+	return nmi;
+}
+
+static
+struct nm_itr *bmi_nm_open(	struct bam_multi_itr *bmi,
+				const char *base_path,
+				const char *chromosome	)
+{
+	unsigned int i;
+	struct nm_itr_tbl *entry;
+	HASH_FIND_STR(bmi->nms, base_path, entry);
+
+	if (entry == NULL) {
+		entry = malloc(sizeof(struct nm_itr_tbl));
+		entry->file_name = base_path;
+		entry->itr = load_normal_metrics(base_path, chromosome);
+		HASH_ADD_STR(bmi->nms, file_name, entry);
+
+		for (i = 0; bmi->nm_itr_list[i]; i++);
+		bmi->nm_itr_list[i] = entry->itr;
+	}
+
+	return entry->itr;
+}
+
+struct bam_multi_itr *bmi_create(	const char *bam_files_fn,
+					const char *default_normal_base_path,
+					const char *chromosome	)
 {
 	struct bam_multi_itr *bmi = NULL;
 	FILE *blfp;
@@ -56,6 +141,8 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 	hts_idx_t *idx;
 
 	char buf[1024];
+	char *normal_base_path;
+
 	htsFile *f;
 	/* first find out how many files are there */
 
@@ -87,10 +174,17 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 	bmi->num_iters = count;
 	bmi->num_done = 0;
 	bmi->itr_list = calloc(count, sizeof(struct bam_single_itr));
-	if (bmi->itr_list == NULL) {
+	bmi->nm_itr_list = calloc(count, sizeof(struct nm_itr));
+	bmi->nm_tbl_list = calloc(count, sizeof(struct nm_tbl));
+	bmi->nms = NULL;
+
+	if (bmi->itr_list == NULL || bmi->nm_itr_list == NULL
+			|| bmi->nm_tbl_list == NULL) {
+
 		err_printf("failed to allocate memory\n");
-		// We can just free bmi and call it a day because nothing else
-		// has been allocated
+		free(bmi->itr_list);
+		free(bmi->nm_itr_list);
+		free(bmi->nm_tbl_list);
 		free(bmi);
 		goto fail_already_clean;
 	}
@@ -99,6 +193,17 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 	blfp = fopen(bam_files_fn, "r");
 	while ( fgets(buf, sizeof(buf), blfp) != NULL ) {
 		buf[strlen(buf)-1] = '\0';
+
+		// If there's a comma, set it to \0 to split
+		// the string
+		normal_base_path = strchr(buf, ',');
+		if (normal_base_path == NULL) {
+			normal_base_path = (char *) default_normal_base_path;
+		} else {
+			*normal_base_path = '\0';
+			normal_base_path++;
+		}
+
 		f = sam_open(buf, "rb");
 		if (f == NULL) {
 			err_printf("failed to open BAM file\n");
@@ -119,6 +224,7 @@ struct bam_multi_itr *bmi_create(const char *bam_files_fn)
 		bmi->itr_list[i].buf = bam_init1();
 		bmi->itr_list[i].vtable = NULL;
 		bmi->itr_list[i].used = 1;
+		bmi->itr_list[i].nmi = bmi_nm_open(bmi, normal_base_path, chromosome);
 
 		i++;
 	}
@@ -161,6 +267,8 @@ int bmi_query(struct bam_multi_itr *bmi, const char *target_name, uint32_t start
 			return 0;
 		}
 	}
+
+	bmi_nm_slurp(bmi, start - 1, end);
 
 	return 1;
 }
