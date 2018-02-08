@@ -1073,8 +1073,8 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 static
 int open_out_files(struct context *context)
 {
-	char *pos_fn, *exon_fn;
-	FILE *pos_file, *exon_file;
+	char *pos_fn, *exon_fn, *nmetrics_fn;
+	FILE *pos_file, *exon_file, *nmetrics_file;
 	int cannot_continue = 0;
 
 	if (settings.output_pos) {
@@ -1129,12 +1129,42 @@ int open_out_files(struct context *context)
 		exon_file = NULL;
 	}
 
+	if (settings.output_nmetrics) {
+		printf("NBO: %s\n", settings.normal_base_out);
+		if (strlen(settings.normal_base_out) == 0) {
+			err_printf("normal metrics requested yet " GVM_CONFIG_normal_base_out " not set in config\n");
+			return 1;
+		}
+
+		nmetrics_fn = malloc(strlen(settings.normal_base_out) +
+				     strlen(settings.chromosome) +
+				     strlen(".txt") + 2);
+
+		if (nmetrics_fn == NULL) {
+			err_printf("unable to allocate memory.");
+			return 1;
+		}
+
+		sprintf(nmetrics_fn, "%s%s.txt", settings.normal_base_out, settings.chromosome);
+		nmetrics_file = fopen(nmetrics_fn, "w");
+		if (nmetrics_file == NULL) {
+			err_printf("unable to open %s:", nmetrics_fn);
+			perror("");
+			cannot_continue = 1;
+		}
+
+		free(nmetrics_fn);
+	} else {
+		nmetrics_file = NULL;
+	}
+
 	if (cannot_continue) {
 		return 1;
 	}
 
 	context->pos_file = pos_file;
 	context->exon_file = exon_file;
+	context->nmetrics_file = nmetrics_file;
 
 	return 0;
 }
@@ -1313,9 +1343,22 @@ int main(int argc, char **argv) // {{{
 	strncpy(settings.chromosome, args_info.chr_arg, sizeof(settings.chromosome));
 
 	/* output settings */
-	settings.output_pos = 1;
-	settings.output_exon = 1;
-	settings.output_nmetrics = 0;
+
+	if (args_info.exon_only_given) {
+		settings.output_pos = 0;
+		settings.output_exon = 1;
+		settings.output_nmetrics = 0;
+	} else if (args_info.normal_only_given) {
+		settings.output_pos = 0;
+		settings.output_exon = 0;
+		settings.output_nmetrics = 1;
+	} else {
+		// default settings
+		settings.output_pos = 1;
+		settings.output_exon = 1;
+		settings.output_nmetrics = 0;
+	}
+
 	settings.verbose = args_info.verbose_given;
 
 	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
