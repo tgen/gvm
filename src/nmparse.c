@@ -152,7 +152,7 @@ int nm_tbl_slurp(struct nm_tbl *nmt, struct nm_itr *nmi)
 
 struct nm_entry *nm_tbl_get(struct nm_tbl *nmt, uint32_t pos)
 {
-	assert(nmt != NULL /* nm_tbl_get with null nm_tbl */);
+	if (nmt == NULL) return NULL;
 
 	struct nm_entry *out;
 	HASH_FIND_INT(nmt->tbl, &pos, out);
