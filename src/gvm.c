@@ -1134,8 +1134,8 @@ int open_out_files(struct context *context)
 
 	if (settings.output_exon) {
 		exon_fn = malloc(strlen(settings.out_name) +
-				strlen(settings.chromosome) +
-				       strlen("_exon.txt") + 2);
+				 strlen(settings.chromosome) +
+				 strlen("_exon.txt") + 2);
 
 		if (exon_fn == NULL) {
 			err_printf("unable to allocate memory.");
