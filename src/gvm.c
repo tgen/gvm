@@ -58,6 +58,7 @@ struct settings {
 	char cosm_vcf_path[256];
 	char normal_base_path[256];
 	char normal_base_out[256];
+	char sex_chrs[256];
 	char out_name[256];
 
 	char chromosome[100];
