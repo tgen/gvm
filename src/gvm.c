@@ -13,7 +13,7 @@
 
 #include <uthash.h>
 
-
+#include "config_keys.h"
 #include "utils.h"
 #include "ref_seq.h"
 #include "base_seq_repr.h"
@@ -57,6 +57,7 @@ struct settings {
 	char snp_vcf_name[256];
 	char cosm_vcf_path[256];
 	char normal_base_path[256];
+	char normal_base_out[256];
 	char out_name[256];
 
 	char chromosome[100];
@@ -841,46 +842,18 @@ int config_try_set_option(char *option, char *value, struct settings *s)
 	double pv_freq;
 	char *tmp;
 
-	if (strcmp(option, "bamList") == 0) {
-		strncpy(s->bam_list, value, sizeof(s->bam_list));
-		return 1;
-	}
+	// See config_keys.h for the real values
+	GVM_CONFIG_CHECK_STROPT(bam_list);
+	GVM_CONFIG_CHECK_STROPT(ref_file);
+	GVM_CONFIG_CHECK_STROPT(bed_file);
+	GVM_CONFIG_CHECK_STROPT(snp_vcf_path);
+	GVM_CONFIG_CHECK_STROPT(snp_vcf_name);
+	GVM_CONFIG_CHECK_STROPT(cosm_vcf_path);
+	GVM_CONFIG_CHECK_STROPT(normal_base_path);
+	GVM_CONFIG_CHECK_STROPT(normal_base_out);
+	GVM_CONFIG_CHECK_STROPT(out_name);
 
-	if (strcmp(option, "refGenome") == 0) {
-		strncpy(s->ref_file, value, sizeof(s->ref_file));
-		return 1;
-	}
-
-	if (strcmp(option, "regionsFile") == 0) {
-		strncpy(s->bed_file, value, sizeof(s->bed_file));
-		return 1;
-	}
-
-	if (strcmp(option, "snpVCFpath") == 0) {
-		strncpy(s->snp_vcf_path, value, sizeof(s->snp_vcf_path));
-		return 1;
-	}
-
-	if (strcmp(option, "snpVCFname") == 0) {
-		strncpy(s->snp_vcf_name, value, sizeof(s->snp_vcf_name));
-		return 1;
-	}
-
-	if (strcmp(option, "cosmicVCF") == 0) {
-		strncpy(s->cosm_vcf_path, value, sizeof(s->cosm_vcf_path));
-		return 1;
-	}
-
-	if (strcmp(option, "NormalBase") == 0) {
-		strncpy(s->normal_base_path, value, sizeof(s->normal_base_path));
-		return 1;
-	}
-
-	if (strcmp(option, "outName") == 0) {
-		strncpy(s->out_name, value, sizeof(s->out_name));
-		return 1;
-	}
-
+	// Probably better to do these manually for now
 	if (strcmp(option, "minBQ") == 0) {
 		min_bq = strtol(value, &tmp, 10);
 		if (*tmp != '\0') {
