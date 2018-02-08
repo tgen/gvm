@@ -116,6 +116,11 @@ struct nm_itr *bmi_nm_open(	struct bam_multi_itr *bmi,
 {
 	unsigned int i;
 	struct nm_itr_tbl *entry;
+
+	if (base_path == NULL) {
+		return NULL;
+	}
+
 	HASH_FIND_STR(bmi->nms, base_path, entry);
 
 	if (entry == NULL) {
