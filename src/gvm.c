@@ -1003,8 +1003,6 @@ int config_read(const char *cfg_fn, struct settings *s)
 				state = 0;
 			}
 
-		default: break;
-
 		}
 
 
