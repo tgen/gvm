@@ -1034,10 +1034,10 @@ int write_exon_line(struct context *context, uint32_t start, uint32_t end)
 
 	exon_file = context->exon_file;
 	bmi = context->bmi;
-	avgs = bmi->itr_list[context->sample_index].nmt->avgs;
 
 
 	for (i = 0; i < bmi->num_iters; i++) {
+		avgs = bmi->itr_list[i].nmt->avgs;
 		mean_read_depth = 0;
 		count = 0.0;
 		for (offset = start; offset <= end; offset++) {
