@@ -1342,21 +1342,9 @@ int main(int argc, char **argv) // {{{
 	strncpy(settings.chromosome, args_info.chr_arg, sizeof(settings.chromosome));
 
 	/* output settings */
-
-	if (args_info.exon_only_given) {
-		settings.output_pos = 0;
-		settings.output_exon = 1;
-		settings.output_nmetrics = 0;
-	} else if (args_info.normal_only_given) {
-		settings.output_pos = 0;
-		settings.output_exon = 0;
-		settings.output_nmetrics = 1;
-	} else {
-		// default settings
-		settings.output_pos = 1;
-		settings.output_exon = 1;
-		settings.output_nmetrics = 0;
-	}
+	settings.output_pos = args_info.output_pos_flag;
+	settings.output_exon = args_info.output_exon_flag;
+	settings.output_nmetrics = args_info.output_normal_flag;
 
 	settings.verbose = args_info.verbose_given;
 
