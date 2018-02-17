@@ -9,3 +9,4 @@ option "output-pos" P "toggle pos file output" flag on
 option "output-exon" E "toggle exon file output" flag on
 option "output-normal" N "toggle normal metrics output" flag off
 option "region" r "ignore bed file and use this region (for example -r 1000-20000)" optional string typestr="start-end"
+option "normal-opts" n "further options for normal metrics calculation" string typestr="options" hidden

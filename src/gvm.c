@@ -60,6 +60,7 @@ struct settings {
 	char normal_base_out[256];
 	char sex_chrs[256];
 	char out_name[256];
+	char ploidy_str[256];
 
 	char chromosome[100];
 
