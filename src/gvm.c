@@ -1216,6 +1216,9 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 	return 1;
 } // }}}
 
+#undef GVM_CALL_CALC_ALIGN
+#undef GVM_CHECK_RESULT
+
 static
 int try_parse_region(char *regstr, uint32_t *begin, uint32_t *end)
 {
@@ -1243,9 +1246,6 @@ int try_parse_region(char *regstr, uint32_t *begin, uint32_t *end)
 
 	return 1;
 }
-
-#undef GVM_CALL_CALC_ALIGN
-#undef GVM_CHECK_RESULT
 
 int main(int argc, char **argv) // {{{
 {
