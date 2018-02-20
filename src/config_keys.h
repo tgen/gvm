@@ -5,7 +5,7 @@
 #define GVM_CONFIG_ref_file         "refGenome"
 #define GVM_CONFIG_bed_file         "regionsFile"
 #define GVM_CONFIG_snp_vcf_path     "snpVCFpath"
-#define GVM_CONFIG_snp_vcf_name    "snpVCFname"
+#define GVM_CONFIG_snp_vcf_name     "snpVCFname"
 #define GVM_CONFIG_cosm_vcf_path    "cosmicVCF"
 #define GVM_CONFIG_normal_base_path "NormalBase"
 #define GVM_CONFIG_normal_base_out  "outfile"
