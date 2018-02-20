@@ -77,7 +77,7 @@ struct settings {
 	uint32_t default_mq;
 	uint32_t default_bq;
 
-	uint32_t min_variants;
+	uint32_t min_b_count;
 
 	double pv_freq;
 };
@@ -726,7 +726,7 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 		HASH_ITER(hh, vtable->counts, counts, tmp) {
 			if (is_mismatch(counts->report, context->ref_seq_info) &&
 					counts->count_f + counts->count_r >=
-						2 * settings.min_variants) {
+						2 * settings.min_b_count) {
 				has_enough = 1;
 			}
 		}
@@ -734,7 +734,7 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 	//	HASH_ITER(hh, vtable->counts, counts, tmp) {
 	//		// Remember, count_f + count_r is TWICE the actual count
 	//		is_enough =
-	//			counts->count_f + counts->count_r >= 2 * settings.min_variants;
+	//			counts->count_f + counts->count_r >= 2 * settings.min_b_count;
 
 	//		if (!is_enough) continue;
 
@@ -840,7 +840,7 @@ int is_split_read(bam1_t *bam)
 
 int config_try_set_option(char *option, char *value, struct settings *s)
 {
-	uint32_t min_mq, min_bq, default_mq, default_bq, min_variants;
+	uint32_t min_mq, min_bq, default_mq, default_bq, min_b_count;
 	double pv_freq;
 	char *tmp;
 
@@ -855,72 +855,12 @@ int config_try_set_option(char *option, char *value, struct settings *s)
 	GVM_CONFIG_CHECK_STROPT(normal_base_out);
 	GVM_CONFIG_CHECK_STROPT(out_name);
 
-	// Probably better to do these manually for now
-	if (strcmp(option, "minBQ") == 0) {
-		min_bq = strtol(value, &tmp, 10);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for minBQ: %s\n", value);
-			return 0;
-		}
-
-		s->min_bq = min_bq;
-		return 1;
-	}
-
-	if (strcmp(option, "minMQ") == 0) {
-		min_mq = strtol(value, &tmp, 10);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for minMQ: %s\n", value);
-			return 0;
-		}
-
-		s->min_mq = min_mq;
-		return 1;
-	}
-
-	if (strcmp(option, "defaultBQ") == 0) {
-		default_bq = strtol(value, &tmp, 10);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for defaultBQ: %s\n", value);
-			return 0;
-		}
-
-		s->default_bq = default_bq;
-		return 1;
-	}
-
-	if (strcmp(option, "defaultMQ") == 0) {
-		default_mq = strtol(value, &tmp, 10);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for defaultMQ: %s\n", value);
-			return 0;
-		}
-
-		s->default_mq = default_mq;
-		return 1;
-	}
-
-	if (strcmp(option, "minBCount") == 0) {
-		min_variants = strtol(value, &tmp, 10);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for minBCount: %s\n", value);
-			return 0;
-		}
-
-		s->min_variants = min_variants;
-		return 1;
-	}
-
-	if (strcmp(option, "pvFreq") == 0) {
-		pv_freq = strtod(value, &tmp);
-		if (*tmp != '\0') {
-			err_printf("Invalid value for pvFreq: %s\n", value);
-			return 0;
-		}
-
-		s->pv_freq = pv_freq;
-		return 1;
-	}
+	GVM_CONFIG_CHECK_NUMOPT(min_bq);
+	GVM_CONFIG_CHECK_NUMOPT(min_mq);
+	GVM_CONFIG_CHECK_NUMOPT(default_bq);
+	GVM_CONFIG_CHECK_NUMOPT(default_mq);
+	GVM_CONFIG_CHECK_NUMOPT(min_b_count);
+	GVM_CONFIG_CHECK_NUMOPT(pv_freq);
 
 	return 2;
 
