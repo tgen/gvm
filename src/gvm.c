@@ -543,9 +543,11 @@ void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_c
 	*b = v->b ? v->b : &dummy;
 }
 
-static
+static __attribute__((unused))
 int check_ab(struct variant_counts *a, struct variant_counts *b)
 {
+	(void) a; (void) b; // to avoid gcc warning
+
 	/* If this fails, then a and b are both being set
 	 * but to the same thing which is bad */
 	assert((a == &dummy && b == &dummy) || a != b);
