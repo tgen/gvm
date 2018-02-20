@@ -650,8 +650,7 @@ void dump_nm_data(	struct context *context,
 static
 void dump_vcounts(	struct context *context,
 			struct variant_table *v,
-			int max_delete_size,
-			bcf1_t *pop_entry	)
+			int max_delete_size	)
 {
 	FILE *f = context->pos_file;
 	struct variant_counts *a = NULL, *b = NULL;
@@ -708,7 +707,7 @@ void dump_blank_vcounts(struct context *context, uint32_t offset, int max_delete
 	vt.offset = offset;
 	vt.tid = context->tid;
 
-	dump_vcounts(context, &vt, max_delete_size, NULL);
+	dump_vcounts(context, &vt, max_delete_size);
 
 }
 
@@ -829,7 +828,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 				if (v == NULL) {
 					dump_blank_vcounts(context, offset, max_delete_size);
 				} else {
-					dump_vcounts(context, v, max_delete_size, pop_entry);
+					dump_vcounts(context, v, max_delete_size);
 				}
 			}
 
