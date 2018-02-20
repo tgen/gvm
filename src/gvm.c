@@ -117,6 +117,19 @@ struct extra_data {
 	uint32_t total_softclip;
 };
 
+// Global blank variant counts dummy value
+// (used in dump_vcounts)
+static struct variant_counts dummy = { 0 };
+
+// Only call this after all config has been read!
+static
+void init_dummy(struct variant_table *v)
+{
+	dummy.total_mq = settings.default_mq;
+	dummy.total_bq = settings.default_bq;
+	dummy.pos = v->offset;
+	dummy.report.pos = v->offset;
+}
 
 // Recording data from BAM {{{
 
@@ -522,6 +535,44 @@ no_af:
 }
 #undef NORMALIZE_ALLELE
 
+
+static
+void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b)
+{
+	*a = v->a ? v->a : &dummy;
+	*b = v->b ? v->b : &dummy;
+}
+
+static
+int check_ab(struct variant_counts *a, struct variant_counts *b)
+{
+	/* If this fails, then a and b are both being set
+	 * but to the same thing which is bad */
+	assert((a == &dummy && b == &dummy) || a != b);
+
+	/* If this fails then a and b are not ordered correctly
+	 * and are most likely completely wrong. */
+	assert(a->count_f + a->count_r >= b->count_f + b->count_r);
+
+	return 1;
+}
+
+static
+void populate_afs(struct context *context, bcf1_t *pop_entry, struct variant_table *v)
+{
+	double a_pop_af, b_pop_af;
+	struct variant_counts *a, *b;
+
+	get_ab(v, &a, &b);
+	assert(check_ab(a, b));
+
+	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report);
+	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report);
+
+	a->pop_af = a_pop_af;
+	b->pop_af = b_pop_af;
+}
+
 static
 uint32_t dump_variant_info(	struct context *context,
 			FILE *f,
@@ -601,7 +652,7 @@ void dump_vcounts(	struct context *context,
 			bcf1_t *pop_entry	)
 {
 	FILE *f = context->pos_file;
-	struct variant_counts *a = NULL, *b = NULL, dummy;
+	struct variant_counts *a = NULL, *b = NULL;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
 	float a_pop_af, b_pop_af;
@@ -611,22 +662,8 @@ void dump_vcounts(	struct context *context,
 
 	int32_t cosm_count_a, cosm_count_b, cosm_count_real;
 
-	memset(&dummy, 0, sizeof(dummy));
-	dummy.total_mq = settings.default_mq;
-	dummy.total_bq = settings.default_bq;
-	dummy.pos = v->offset;
-	dummy.report.pos = v->offset;
-
-	a = v->a ? v->a : &dummy;
-	b = v->b ? v->b : &dummy;
-
-	/* If this fails, then a and b are both being set
-	 * but to the same thing which is bad */
-	assert((a == &dummy && b == &dummy) || a != b);
-
-	/* If this fails then a and b are not ordered correctly
-	 * and are most likely completely wrong. */
-	assert(a->count_f + a->count_r >= b->count_f + b->count_r);
+	get_ab(v, &a, &b);
+	assert(check_ab(a, b));
 
 	ref_allele_partial =
 		collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
@@ -647,8 +684,8 @@ void dump_vcounts(	struct context *context,
 	b_alt = dump_variant_info(context, f, b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	a_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, a->report);
-	b_pop_af = get_af_true(context, SNP_VCF_INDEX, pop_entry, b->report);
+	a_pop_af = a->pop_af;
+	b_pop_af = b->pop_af;
 
 	cosm_count_a = get_cosmic_count(v->offset, a_alt);
 	cosm_count_b = get_cosmic_count(v->offset, b_alt);
@@ -782,6 +819,10 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 			vt = context->bmi->itr_list[sample_idx].vtable;
 
 			HASH_FIND_INT(vt, &offset, v);
+
+			init_dummy(v);
+			populate_afs(context, pop_entry, v);
+
 			if (settings.output_pos) {
 				if (v == NULL) {
 					dump_blank_vcounts(context, offset, max_delete_size);

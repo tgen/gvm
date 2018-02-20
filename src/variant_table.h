@@ -36,6 +36,9 @@ struct variant_counts {
 
 	uint32_t total_read_pos;
 
+	double pop_af;
+	uint32_t cosmic_count; // FIXME: unused but maybe useful later?
+
 	UT_hash_handle hh;
 };
 
