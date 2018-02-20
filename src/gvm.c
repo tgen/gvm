@@ -1349,8 +1349,20 @@ int main(int argc, char **argv) // {{{
 
 	settings.verbose = args_info.verbose_given;
 
+	verbose_fprintf(stderr, "%s (bugs to %s)\n", PACKAGE_STRING, PACKAGE_BUGREPORT);
 	verbose_fprintf(stderr, "Configuration: %s\n", settings.conf_path);
 	verbose_fprintf(stderr, "Chromosome: %s\n", settings.chromosome);
+	verbose_fprintf(stderr, "Outputs: ");
+	if (settings.output_pos) {
+		verbose_fprintf(stderr, "pos ");
+	}
+	if (settings.output_exon) {
+		verbose_fprintf(stderr, "exon ");
+	}
+	if (settings.output_nmetrics) {
+		verbose_fprintf(stderr, "normalmetrics ");
+	}
+	verbose_fprintf(stderr, "\n");
 
 	if (!config_read(settings.conf_path, &settings)) {
 		return EXIT_FAILURE;
