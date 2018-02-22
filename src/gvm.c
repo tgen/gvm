@@ -637,7 +637,7 @@ void dump_nm_data(	struct context *context,
 	if (ent == NULL) {
 		err_printf("no normal metrics data for chromosome %s, offset %d\n",
 				settings.chromosome, offset);
-		fprintf(f, "NaN\tNaN\tNaN\tNaN");
+		fprintf(f, "nan\tnan\tnan\tnan");
 	} else {
 
 		fprintf(f, "%g\t%g\t%g\t%g",
