@@ -537,7 +537,6 @@ no_af:
 #undef NORMALIZE_ALLELE
 
 
-static
 void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b)
 {
 	*a = v->a ? v->a : &dummy;
