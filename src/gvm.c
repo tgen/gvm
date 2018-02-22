@@ -1121,7 +1121,6 @@ int open_out_files(struct context *context)
 	}
 
 	if (settings.output_nmetrics) {
-		printf("NBO: %s\n", settings.normal_base_out);
 		if (strlen(settings.normal_base_out) == 0) {
 			err_printf("normal metrics requested yet " GVM_CONFIG_normal_base_out " not set in config\n");
 			return 1;
