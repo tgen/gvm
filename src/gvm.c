@@ -80,6 +80,7 @@ struct settings {
 	uint32_t min_b_count;
 
 	double pv_freq;
+	double prior_map_error;
 };
 
 /* global settings object */
@@ -883,7 +884,7 @@ int is_split_read(bam1_t *bam)
 int config_try_set_option(char *option, char *value, struct settings *s)
 {
 	uint32_t min_mq, min_bq, default_mq, default_bq, min_b_count;
-	double pv_freq;
+	double pv_freq, prior_map_error;
 	char *tmp;
 
 	// See config_keys.h for the real values
@@ -903,6 +904,10 @@ int config_try_set_option(char *option, char *value, struct settings *s)
 	GVM_CONFIG_CHECK_NUMOPT(default_mq);
 	GVM_CONFIG_CHECK_NUMOPT(min_b_count);
 	GVM_CONFIG_CHECK_NUMOPT(pv_freq);
+
+	if (settings.output_nmetrics) {
+		GVM_CONFIG_CHECK_NUMOPT(prior_map_error);
+	}
 
 	return 2;
 

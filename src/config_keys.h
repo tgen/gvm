@@ -18,6 +18,7 @@
 #define GVM_CONFIG_default_mq       "defaultMQ"
 #define GVM_CONFIG_min_b_count      "minBCount"
 #define GVM_CONFIG_pv_freq          "pvFreq"
+#define GVM_CONFIG_prior_map_error  "priorMapError"
 
 #define GVM_CONFIG_CHECK_STROPT(N) \
     if (strcmp(option, GVM_CONFIG_##N) == 0) { \
