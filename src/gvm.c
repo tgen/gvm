@@ -1421,8 +1421,13 @@ int main(int argc, char **argv) // {{{
 		return EXIT_FAILURE;
 	}
 
-	verbose_fprintf(stderr, "Loading cosmic count data...\n")
-	load_cosmic_table(settings.cosm_vcf_path, settings.chromosome);
+	if (strlen(settings.cosm_vcf_path) > 0) {
+		verbose_fprintf(stderr, "Loading cosmic count data...\n");
+		load_cosmic_table(settings.cosm_vcf_path, settings.chromosome);
+	} else if (settings.output_pos || settings.output_exon) {
+		err_printf("pos or exon file requested, but no cosmic vcf provided\n");
+		return EXIT_FAILURE;
+	}
 
 	free(snp_vcf_fname);
 	// }}}
