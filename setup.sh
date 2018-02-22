@@ -9,6 +9,10 @@ if module 2>/dev/null; then
 	module load htslib/git-head
 	module load yaml
 	module load gengetopt
+	module load gsl/2.4-sid
+
+	# TEMPORARY STOPGAP MEASURE (HPC ticket 39196)
+	export LIBRARY_PATH="/packages/gsl/2.4/lib:$LIBRARY_PATH"
 
 	MODULEPATH=$OLDMODULEPATH
 

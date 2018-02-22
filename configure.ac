@@ -22,6 +22,9 @@ fi
 AC_CHECK_LIB([hts], [bam_endpos], [], AC_MSG_ERROR(please install htslib))
 AC_CHECK_LIB([hts], [bam_endpos2], [], AC_MSG_WARN(you should consider using the bam_endpos2 patch))
 AC_CHECK_LIB([yaml], [yaml_parser_initialize], [], AC_MSG_ERROR(please install libyaml))
+AC_CHECK_LIB([m],[pow, cos])
+AC_CHECK_LIB([gslcblas],[cblas_dgemm])
+AC_CHECK_LIB([gsl],[gsl_blas_dgemm])
 
 # Checks for header files.
 AC_CHECK_HEADERS([fcntl.h inttypes.h limits.h stddef.h stdint.h stdlib.h string.h sys/param.h sys/time.h unistd.h])
