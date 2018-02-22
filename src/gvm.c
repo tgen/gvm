@@ -543,7 +543,7 @@ void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_c
 	*b = v->b ? v->b : &dummy;
 }
 
-static __attribute__((unused))
+__attribute__((unused))
 int check_ab(struct variant_counts *a, struct variant_counts *b)
 {
 	(void) a; (void) b; // to avoid gcc warning
