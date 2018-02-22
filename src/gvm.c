@@ -810,9 +810,10 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
 
 	for (offset = begin; offset < end; offset++) {
-		tbl = nm_tbl_create();
 		max_delete_size = get_max_delete_size(context, offset);
 		if (max_delete_size < 0) continue;
+
+		tbl = nm_tbl_create();
 
 		pop_entry = NULL;
 		get_bcf_entries(context, offset, &pop_entry);
