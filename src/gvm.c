@@ -809,35 +809,36 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
 
 	for (offset = begin; offset < end; offset++) {
-		max_delete_size = get_max_delete_size(context, offset);
-		if (max_delete_size < 0) continue;
-
 		tbl = nm_tbl_create();
 
-		pop_entry = NULL;
-		get_bcf_entries(context, offset, &pop_entry);
+		max_delete_size = get_max_delete_size(context, offset);
+		if (max_delete_size >= 0) {
 
-		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
-			context->sample_index = sample_idx;
-			vt = context->bmi->itr_list[sample_idx].vtable;
+			pop_entry = NULL;
+			get_bcf_entries(context, offset, &pop_entry);
 
-			HASH_FIND_INT(vt, &offset, v);
-			if (v != NULL) {
-				init_dummy(v);
-				populate_afs(context, pop_entry, v);
-			}
+			for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
+				context->sample_index = sample_idx;
+				vt = context->bmi->itr_list[sample_idx].vtable;
 
-			if (settings.output_pos) {
-				if (v == NULL) {
-					dump_blank_vcounts(context, offset, max_delete_size);
-				} else {
-					dump_vcounts(context, v, max_delete_size);
+				HASH_FIND_INT(vt, &offset, v);
+				if (v != NULL) {
+					init_dummy(v);
+					populate_afs(context, pop_entry, v);
 				}
-			}
 
-			if (settings.output_nmetrics && v != NULL) {
-				nmcalc(context, v, settings.prior_map_error, &ent);
-				nm_tbl_add(tbl, ent, 1 /* only compute averages */);
+				if (settings.output_pos) {
+					if (v == NULL) {
+						dump_blank_vcounts(context, offset, max_delete_size);
+					} else {
+						dump_vcounts(context, v, max_delete_size);
+					}
+				}
+
+				if (settings.output_nmetrics && v != NULL) {
+					nmcalc(context, v, settings.prior_map_error, &ent);
+					nm_tbl_add(tbl, ent, 1 /* only compute averages */);
+				}
 			}
 		}
 
