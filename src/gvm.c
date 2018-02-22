@@ -801,7 +801,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	uint32_t offset, sample_idx;
 
 	struct nm_entry ent = {0};
-	struct nm_tbl tbl;
+	struct nm_tbl *tbl;
 
 	bcf1_t *pop_entry;
 
@@ -810,6 +810,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
 
 	for (offset = begin; offset < end; offset++) {
+		tbl = nm_tbl_create();
 		max_delete_size = get_max_delete_size(context, offset);
 		if (max_delete_size < 0) continue;
 
@@ -821,9 +822,10 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 			vt = context->bmi->itr_list[sample_idx].vtable;
 
 			HASH_FIND_INT(vt, &offset, v);
-
-			init_dummy(v);
-			populate_afs(context, pop_entry, v);
+			if (v != NULL) {
+				init_dummy(v);
+				populate_afs(context, pop_entry, v);
+			}
 
 			if (settings.output_pos) {
 				if (v == NULL) {
@@ -834,20 +836,22 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 			}
 
 			if (settings.output_nmetrics && v != NULL) {
-				nmcalc(context, v, &ent);
-				nm_tbl_add(&tbl, ent, 1 /* only compute averages */);
-
+				nmcalc(context, v, settings.prior_map_error, &ent);
+				nm_tbl_add(tbl, ent, 1 /* only compute averages */);
 			}
 		}
 
 		if (settings.output_nmetrics) {
-			if (tbl.count == 0) {
+			if (tbl->count == 0) {
 				dump_blank_nmetrics(context, offset);
 			} else {
-				dump_nmetrics(context, offset, tbl.avgs, tbl.count);
+				dump_nmetrics(context, offset, tbl->avgs, tbl->count);
 			}
 		}
+
+		nm_tbl_destroy(tbl);
 	}
+
 }
 
 // }}}

@@ -1,12 +1,80 @@
+#include <assert.h>
+#include <math.h>
+#include <gsl/gsl_randist.h>
 #include "nmcalc.h"
 
-void nmcalc(struct context *context, struct variant_table *v, struct nm_entry *out)
+void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b);
+int check_ab(struct variant_counts *a, struct variant_counts *b);
+
+// Convenience macro to mimic MATLAB function
+#define binopdf(X, N, P) gsl_ran_binomial_pdf((X), (P), (N))
+
+void nmcalc(struct context *context, struct variant_table *v, double prior_map_error, struct nm_entry *out)
 {
 	(void) context;
-	out->pos = v->offset;
-	out->norm_read_depth = v->read_count_pass;
+	uint32_t ploidy;
 
-	out->prob_map_err = 0;
-	out->read_pass = 0;
-	out->a_or_b = 0;
+	uint32_t a_read_depth, b_read_depth;
+	double a_mean_mq, b_mean_mq;
+
+	double prior_hom, prior_het;
+	double p_data_map_error, p_data_hom, p_data_het, p_data;
+	double p_map_error;
+
+	double per_read_pass, ab_frac;
+
+	struct variant_counts *a, *b;
+
+	get_ab(v, &a, &b);
+	assert(check_ab(a, b));
+
+	// Initialization of useful variables
+
+	a_read_depth = (a->count_f + b->count_f) / 2;
+	b_read_depth = (b->count_f + b->count_f) / 2;
+
+	a_mean_mq = a->total_mq / (a_read_depth || nan("200")); // The || nan avoids a div-by-zero
+	b_mean_mq = b->total_mq / (b_read_depth || nan("200")); // and returns nan instead
+
+	ploidy = 2; // TODO: temporary default
+
+	// Normal metrics calculation starts here
+
+	// priors
+	if (ploidy == 2) {
+		prior_het = 2 * a->pop_af * b->pop_af;
+	} else {
+		prior_het = 0;
+	}
+
+	prior_hom = a->pop_af * a->pop_af;
+
+	// likelihoods
+	p_data_map_error = pow(10, -fmin(a_mean_mq, b_mean_mq)/10);
+	p_data_hom = binopdf(b_read_depth, v->read_count_pass, pow(10, (-b_mean_mq / 10)));
+	p_data_het = binopdf(b_read_depth, v->read_count_pass,  0.5);
+
+	p_data = prior_map_error * p_data_map_error + prior_het * p_data_het + prior_hom * p_data_hom;
+
+	// posteriors
+	p_map_error = prior_map_error * p_data_map_error / p_data;
+
+	// other metrics
+	per_read_pass = v->read_count_pass / v->read_count;
+
+	ab_frac = (a_read_depth + b_read_depth) / (v->read_count_pass || nan("200"));
+
+	out->pos = v->offset;
+
+	if (ploidy == 1 || ploidy == 2) {
+		out->norm_read_depth = ploidy * v->read_count_pass; // sneaky
+		out->prob_map_err = p_map_error;
+		out->read_pass = per_read_pass;
+		out->a_or_b = ab_frac;
+	} else  {
+		out->norm_read_depth = nan("101");
+		out->prob_map_err = nan("102");
+		out->read_pass = nan("103");
+		out->a_or_b = nan("104");
+	}
 }
