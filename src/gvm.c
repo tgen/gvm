@@ -145,9 +145,9 @@ int is_mismatch(struct alignment_report rep, struct ref_seq ref_seq_info)
 
 static
 int modify_overlap_quals(bam1_t *bam, bam1_t *mbam,
-		struct alignment_report rep,
-		uint32_t *mq, uint32_t *bq,
-		int *is_overlap)
+			 struct alignment_report rep,
+			 uint32_t *mq, uint32_t *bq,
+			 int *is_overlap)
 {
 
 	uint32_t p1, p2, q1, q2, fspos, rspos, fb, rb, fbq, rbq;
