@@ -253,6 +253,10 @@ void record_match(	struct context *context,
 
 	uint32_t mm_count = extra_data->mm_count;
 
+	if (is_mismatch(rep, context.ref_seq_info)) {
+		mm_count -= rep.size;
+	}
+
 	struct variant_table *vtable, *vtentry;
 	struct variant_counts *vcounts;
 
@@ -362,7 +366,9 @@ void report_aggregate(	struct context *context,
 	struct extra_data *extra_data = extra_data_p;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
-	/* check if this is a mismatch */
+	// Count total mismatch
+	// NOTE: the mm_count calculated here is not the same that is used
+	// to calculate PMM. See record_match() for more details.
 	int is_mm = is_mismatch(rep, ref_seq_info);
 	if (is_mm) {
 		extra_data->mm_count += rep.size;
