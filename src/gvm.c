@@ -253,7 +253,7 @@ void record_match(	struct context *context,
 
 	uint32_t mm_count = extra_data->mm_count;
 
-	if (is_mismatch(rep, context.ref_seq_info)) {
+	if (is_mismatch(rep, context->ref_seq_info)) {
 		mm_count -= rep.size;
 	}
 
