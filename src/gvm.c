@@ -723,7 +723,7 @@ void dump_nmetrics(struct context *context, uint32_t offset, struct nm_entry avg
 	(void)count;
 
 	fprintf(context->nmetrics_file, "%d\t%d\t%g\t%g\t%g\t%g\n",
-			context->tid,
+			context->tid + 1,
 			offset,
 			avgs.norm_read_depth,
 			avgs.prob_map_err,
@@ -735,7 +735,7 @@ static
 void dump_blank_nmetrics(struct context *context, uint32_t offset)
 {
 	fprintf(context->nmetrics_file, "%d\t%d\t0\tNaN\tNaN\tNaN\n",
-			context->tid,
+			context->tid + 1,
 			offset);
 }
 
