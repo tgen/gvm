@@ -4,6 +4,8 @@
 !output
 output/*.out
 
+!scripts
+
 !src
 
 !gengetopt
