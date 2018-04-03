@@ -7,6 +7,10 @@
 struct context;
 
 
-void nmcalc(struct context *context, struct variant_table *v, double prior_map_error, struct nm_entry *out);
+void nmcalc(struct context *context,
+            struct variant_table *v,
+            double prior_map_error,
+            int ploidy,
+            struct nm_entry *out);
 
 #endif

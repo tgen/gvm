@@ -130,6 +130,7 @@ void init_dummy(struct variant_table *v)
 	dummy.total_bq = settings.default_bq;
 	dummy.pos = v->offset;
 	dummy.report.pos = v->offset;
+	dummy.pop_af = 0.0f;
 }
 
 // Recording data from BAM {{{
@@ -545,8 +546,8 @@ no_af:
 
 void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b)
 {
-	*a = v->a ? v->a : &dummy;
-	*b = v->b ? v->b : &dummy;
+	*a = v && v->a ? v->a : &dummy;
+	*b = v && v->b ? v->b : &dummy;
 }
 
 __attribute__((unused))
@@ -808,6 +809,8 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	struct nm_entry ent = {0};
 	struct nm_tbl *tbl;
 
+	int ploidy; // for normal metrics calculation
+
 	bcf1_t *pop_entry;
 
 	// clamp in region
@@ -818,21 +821,22 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		tbl = nm_tbl_create();
 
 		max_delete_size = get_max_delete_size(context, offset);
-		if (max_delete_size >= 0) {
 
-			pop_entry = NULL;
-			get_bcf_entries(context, offset, &pop_entry);
+		pop_entry = NULL;
+		get_bcf_entries(context, offset, &pop_entry);
 
-			for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
-				context->sample_index = sample_idx;
-				vt = context->bmi->itr_list[sample_idx].vtable;
+		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
+			context->sample_index = sample_idx;
+			vt = context->bmi->itr_list[sample_idx].vtable;
 
-				HASH_FIND_INT(vt, &offset, v);
-				if (v != NULL) {
-					init_dummy(v);
-					populate_afs(context, pop_entry, v);
-				}
+			HASH_FIND_INT(vt, &offset, v);
 
+			if (v != NULL) {
+				init_dummy(v);
+				populate_afs(context, pop_entry, v);
+			}
+
+			if (max_delete_size >= 0) {
 				if (settings.output_pos) {
 					if (v == NULL) {
 						dump_blank_vcounts(context, offset, max_delete_size);
@@ -840,10 +844,20 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 						dump_vcounts(context, v, max_delete_size);
 					}
 				}
+			}
 
-				if (settings.output_nmetrics && v != NULL) {
-					nmcalc(context, v, settings.prior_map_error, &ent);
-					nm_tbl_add(tbl, ent, 1 /* only compute averages */);
+			if (settings.output_nmetrics) {
+				struct variant_table dummy = {0}, *rv;
+				rv = v == NULL ? &dummy : v;
+
+				// This is guaranteed to not segfault at least
+				ploidy = settings.ploidy_str[sample_idx] - '0';
+
+				nmcalc(context, rv, settings.prior_map_error, ploidy, &ent);
+				nm_tbl_add(tbl, ent, 1 /* only compute averages */);
+
+				if (v == &dummy) {
+					v = NULL;
 				}
 			}
 		}
@@ -1128,6 +1142,11 @@ int open_out_files(struct context *context)
 	}
 
 	if (settings.output_nmetrics) {
+		if (strlen(settings.ploidy_str) == 0) {
+			err_printf("normal metrics requested yet --ploidystr not provided\n");
+			return 1;
+		}
+
 		if (strlen(settings.normal_base_out) == 0) {
 			err_printf("normal metrics requested yet " GVM_CONFIG_normal_base_out " not set in config\n");
 			return 1;
@@ -1336,8 +1355,13 @@ int main(int argc, char **argv) // {{{
 		settings.use_bed = 0;
 	}
 
+	// Don't have to check if conf_arg or chr_arg are given because they're required
 	strncpy(settings.conf_path, args_info.conf_arg, sizeof(settings.conf_path));
 	strncpy(settings.chromosome, args_info.chr_arg, sizeof(settings.chromosome));
+	// This option is not required, hence the check
+	if (args_info.ploidystr_given) {
+		strncpy(settings.ploidy_str, args_info.ploidystr_arg, sizeof(settings.ploidy_str));
+	}
 
 	/* output settings */
 	settings.output_pos = args_info.output_pos_flag;
@@ -1376,6 +1400,15 @@ int main(int argc, char **argv) // {{{
 	}
 
 	assert(bmi->num_iters > 0);
+
+	// If normal metrics calculation is requested, check that len(ploidystr) == len(bamlist)
+	if (settings.output_nmetrics && strlen(settings.ploidy_str) != bmi->num_iters) {
+		err_printf("bamlist has length %lu, yet ploidystr has length %d\n",
+		           strlen(settings.ploidy_str),
+		           bmi->num_iters);
+		return EXIT_FAILURE;
+	}
+
 	tid = bmi_get_tid(bmi, settings.chromosome);
 	// }}}
 

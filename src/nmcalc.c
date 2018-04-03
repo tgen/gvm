@@ -6,15 +6,22 @@
 void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b);
 int check_ab(struct variant_counts *a, struct variant_counts *b);
 
-// Convenience macro to mimic MATLAB function
-#define binopdf(X, N, P) gsl_ran_binomial_pdf((X), (P), (N))
+// Convenience function to mimic MATLAB function
+static inline double binopdf(unsigned int x, unsigned int n, double p) {
+	return gsl_ran_binomial_pdf(x, p, n);
+}
 
-void nmcalc(struct context *context, struct variant_table *v, double prior_map_error, struct nm_entry *out)
+#define NONZERO_OR_NAN(X, NAN_CODE) ((X) == (X) ? (X) : nan(#NAN_CODE))
+
+void nmcalc(struct context *context,
+            struct variant_table *v,
+            double prior_map_error,
+            int ploidy,
+            struct nm_entry *out)
 {
 	(void) context;
-	uint32_t ploidy;
 
-	uint32_t a_read_depth, b_read_depth;
+	double a_read_depth, b_read_depth;
 	double a_mean_mq, b_mean_mq;
 
 	double prior_hom, prior_het;
@@ -30,13 +37,11 @@ void nmcalc(struct context *context, struct variant_table *v, double prior_map_e
 
 	// Initialization of useful variables
 
-	a_read_depth = (a->count_f + b->count_f) / 2;
-	b_read_depth = (b->count_f + b->count_f) / 2;
+	a_read_depth = (a->count_f + a->count_r) / 2.0;
+	b_read_depth = (b->count_f + b->count_r) / 2.0;
 
-	a_mean_mq = a->total_mq / (a_read_depth || nan("200")); // The || nan avoids a div-by-zero
-	b_mean_mq = b->total_mq / (b_read_depth || nan("200")); // and returns nan instead
-
-	ploidy = 2; // TODO: temporary default
+	a_mean_mq = a->total_mq / NONZERO_OR_NAN(a_read_depth, 200);
+	b_mean_mq = b->total_mq / NONZERO_OR_NAN(b_read_depth, 200);
 
 	// Normal metrics calculation starts here
 
@@ -57,17 +62,21 @@ void nmcalc(struct context *context, struct variant_table *v, double prior_map_e
 	p_data = prior_map_error * p_data_map_error + prior_het * p_data_het + prior_hom * p_data_hom;
 
 	// posteriors
-	p_map_error = prior_map_error * p_data_map_error / p_data;
+	if (v->read_count_pass > 0) {
+		p_map_error = prior_map_error * p_data_map_error / p_data;
+	} else {
+		p_map_error = nan("300");
+	}
 
 	// other metrics
-	per_read_pass = v->read_count_pass / v->read_count;
+	per_read_pass = v->read_count_pass / NONZERO_OR_NAN(v->read_count, 200);
 
-	ab_frac = (a_read_depth + b_read_depth) / (v->read_count_pass || nan("200"));
+	ab_frac = (a_read_depth + b_read_depth) / NONZERO_OR_NAN(v->read_count_pass, 200);
 
 	out->pos = v->offset;
 
 	if (ploidy == 1 || ploidy == 2) {
-		out->norm_read_depth = ploidy * v->read_count_pass; // sneaky
+		out->norm_read_depth = (3-ploidy) * v->read_count_pass; // sneak
 		out->prob_map_err = p_map_error;
 		out->read_pass = per_read_pass;
 		out->a_or_b = ab_frac;
