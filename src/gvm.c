@@ -4,7 +4,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include <config.h>
+#include "config.h"
 
 #include <yaml.h>
 #include <htslib/sam.h>
