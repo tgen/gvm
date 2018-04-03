@@ -184,6 +184,7 @@ int modify_overlap_quals(bam1_t *bam, bam1_t *mbam,
 				rb = bam_seqi(bam_get_seq(mbam), rspos);
 				fbq = bam_get_qual(bam)[fspos];
 				rbq = bam_get_qual(mbam)[rspos];
+
 				if (fb == rb) {
 					*bq += rbq;
 					if (rbq > fbq) rep.data = int_to_b5base(rb);
