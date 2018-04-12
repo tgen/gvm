@@ -819,12 +819,20 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
 
 	for (offset = begin; offset < end; offset++) {
-		tbl = nm_tbl_create();
 
 		max_delete_size = get_max_delete_size(context, offset);
 
+		// If normal metrics output isn't a concern and there
+		// is nothing of interest at this position, SKIP IT
+		//
+		// For future reference, this check is crucial to the
+		// performance of this program, especially when only
+		// doing pos/exon output.
+		if (max_delete_size < 0 && !settings.output_nmetrics) continue;
+
 		pop_entry = NULL;
 		get_bcf_entries(context, offset, &pop_entry);
+		tbl = nm_tbl_create();
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 			context->sample_index = sample_idx;
