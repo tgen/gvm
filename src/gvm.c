@@ -752,6 +752,28 @@ int get_delete_size(struct variant_counts *vc)
 static
 int get_max_delete_size(struct context *context, uint32_t offset)
 {
+	// The purpose of this function is not immediately obvious.
+	// It calculates, for a given offset, the size of the largest
+	// event.
+
+	// How have I defined the size of an event? If it's a single
+	// base change or an insertion, it's 1. If it's a deletion,
+	// it's the number of bases deleted.
+
+	// Why is this necessary? Because when calculating the REF
+	// field for pos file output for a position where a deletion
+	// is the most common event, the size of the deletion is important.
+
+	// Let's say we have a position where allele A is a deletion
+	// of size 3 and allele B is an single point change. Then, the
+	// REF and ALT fields might look like this:
+
+	// REF: ACCC    ALT_A: A    ALT_B: TCCC
+
+	// It's clear that to calculate the REF field, the size of the
+	// A deletion must be known. That's what this function
+	// calculates.
+
 	uint32_t sample_idx;
 	struct variant_table *vtable;
 	struct variant_counts *counts, *tmp, *a, *b;
