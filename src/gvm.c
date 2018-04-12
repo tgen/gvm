@@ -798,24 +798,6 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 				has_enough = 1;
 			}
 		}
-
-	//	HASH_ITER(hh, vtable->counts, counts, tmp) {
-	//		// Remember, count_f + count_r is TWICE the actual count
-	//		is_enough =
-	//			counts->count_f + counts->count_r >= 2 * settings.min_b_count;
-
-	//		if (!is_enough) continue;
-
-	//		cur_delete_size = get_delete_size(counts);
-
-	//		if (cur_delete_size > max_delete_size) {
-	//			max_delete_size = cur_delete_size;
-	//		}
-	//
-	//		if (is_mismatch(counts->report, context->ref_seq_info)) {
-	//			has_enough = 1;
-	//		}
-	//	}
 	}
 
 	return has_enough ? max_delete_size : -1;
