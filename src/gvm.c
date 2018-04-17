@@ -242,6 +242,31 @@ void update_ab(struct variant_table *v, struct variant_counts *new_entry)
 }
 
 static
+uint32_t get_insert_size(bam1_t *bam, bam1_t *mbam)
+{
+	assert(bam != NULL);
+
+	uint32_t s1, s2, e1, e2;
+	s1 = bam->core.pos;
+	e1 = bam_endpos2(bam);
+
+	if (mbam == NULL) {
+		return e1 - s1;
+	}
+
+	s2 = mbam->core.pos;
+	e2 = bam_endpos2(mbam);
+
+	return MAX(e1, e2) - MIN(s1, s2);
+}
+
+static
+uint32_t get_read_orientation(bam1_t *bam)
+{
+	return ! !(bam->core.flag & 0x10);
+}
+
+static
 void record_match(	struct context *context,
 			struct alignment_report rep,
 			void *extra_data_p)
@@ -261,6 +286,7 @@ void record_match(	struct context *context,
 	bam1_t *mbam = context->mbam;
 
 	uint32_t mm_count = extra_data->mm_count;
+	uint32_t total_softclip = extra_data->total_softclip;
 
 	// REF1: This is the comment to which report_aggregate()
 	// refers.
@@ -353,6 +379,10 @@ void record_match(	struct context *context,
 		vcounts->total_mq += mq;
 		vcounts->total_bq += bq;
 		vcounts->total_read_pos += rep.spos;
+
+		vcounts->total_softclip += total_softclip;
+		vcounts->total_insert_size += get_insert_size(bam, mbam);
+		vcounts->total_read_orientation += get_read_orientation(bam);
 
 		assert(mm_count <= (uint32_t) bam->core.l_qseq);
 		vcounts->total_pmm += (double) mm_count / bam->core.l_qseq;
