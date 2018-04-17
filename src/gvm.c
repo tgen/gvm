@@ -45,6 +45,13 @@
 #define SNP_VCF_INDEX    0
 #define COSMIC_VCF_INDEX 1
 
+// Nice names for alignment flags
+#define BAM_FLAG_GOODALIGN 0x2
+#define BAM_FLAG_REVCOMP 0x10
+#define BAM_SECONDARY 0x100
+#define BAM_FLAG_DUPLICATE 0x400
+#define BAM_SUPPLEMENTARY 0x800
+
 // Settings {{{
 
 /* This program's settings */
@@ -895,11 +902,6 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 // }}}
 
 // Checking various properties of alignments {{{
-#define BAM_FLAG_GOODALIGN 0x2
-#define BAM_FLAG_REVCOMP 0x10
-#define BAM_SECONDARY 0x100
-#define BAM_FLAG_DUPLICATE 0x400
-#define BAM_SUPPLEMENTARY 0x800
 
 static
 int check_flags(bam1_t *bam)
