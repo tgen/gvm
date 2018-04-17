@@ -23,6 +23,13 @@ struct variant_counts {
 
 	uint32_t pos; /* The value of report.pos will alawys be zero so we need this */
 
+	/* These are stored as integers and each read is DOUBLE
+	 * COUNTED! This is because there can be half reads (in the
+	 * case of overlap, both the f and the r strand counts get 0.5
+	 *
+	 * Therefore, in order to calculate the actual read depth, you
+	 * would do (count_f + count_r) / 2.0 */
+
 	uint32_t count_f;
 	uint32_t count_r;
 
