@@ -41,6 +41,10 @@ struct variant_counts {
 	uint32_t total_mq;
 	double total_pmm;
 
+	uint32_t total_softclip;
+	uint32_t total_insert_size;
+	uint32_t total_read_orientation;
+
 	uint32_t total_read_pos;
 
 	double pop_af;
