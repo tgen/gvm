@@ -33,9 +33,9 @@ struct variant_counts {
 	uint32_t count_f;
 	uint32_t count_r;
 
-	/* I keep track of the totals, not the means, because it's easier to
-	 * keep the total and calculate the mean at the end instead of
-	 * constantly updating the mean */
+	/* I keep track of the totals, not the means, because it's
+	 * easier to keep the total and calculate the mean at the end
+	 * instead of constantly updating the mean */
 
 	uint32_t total_bq;
 	uint32_t total_mq;
