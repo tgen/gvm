@@ -108,6 +108,13 @@ int run_cigar(  bam1_t *bam,
 		}
 		break;
 	case BAM_CSOFT_CLIP:
+		report.align_type = at_sclip;
+		report.pos = *base_offset;
+		report.spos = *seq_index;
+		report.data = 0;
+		report.size = len;
+		rfunc(context, report, extra_data);
+
 		*seq_index += len;
 		//*base_offset += len+2;
 		break;
