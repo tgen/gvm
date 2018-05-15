@@ -288,7 +288,7 @@ void record_match(	struct context *context,
 	uint32_t mm_count = extra_data->mm_count;
 	uint32_t total_softclip = extra_data->total_softclip;
 
-	// REF1: This is the comment to which report_aggregate()
+	// REF1: This is the comment to which record_aggregate()
 	// refers.
 	if (is_mismatch(rep, context->ref_seq_info)) {
 		mm_count -= rep.size;
@@ -399,7 +399,7 @@ void record_match(	struct context *context,
 }
 
 static
-void report_aggregate(	struct context *context,
+void record_aggregate(	struct context *context,
 			struct alignment_report rep,
 			void *extra_data_p)
 {
@@ -1242,7 +1242,7 @@ int open_out_files(struct context *context)
 				context->bam, \
 				context->ref_seq_info, \
 				record_match, \
-				report_aggregate, \
+				record_aggregate, \
 				context, \
 				&ed); \
 	} while (0)
