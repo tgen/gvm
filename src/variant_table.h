@@ -15,6 +15,22 @@
  * 
  * for every report, we find out the corresponding reference genome value
  * then we increment its stuff
+ **********
+ * Something that may not be terribly obvious is that uthash (the hash
+ * library that gvm uses) uses YOUR structures to define a hash
+ * table. For example, a hash that maps ints to strings would look like this:
+ *
+ * struct int_to_str_map {
+ *         uint32_t key;
+ *         char *value;
+ *         UT_hash_handle hh; // used by uthash for bookkeeping
+ * } *map = NULL;
+ *
+ * Now `map` (points to a `struct int_to_str_map`) IS the hashtable!
+ * You add things to it with HASH_ADD_INT (the _INT is a specialized
+ * HASH_ADD for convenience because hash tables commonly have integer
+ * keys). This is a little confusing, at least it is to me, so just
+ * keep it in mind when reading other code.
  * 
  */
 

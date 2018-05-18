@@ -26,6 +26,7 @@
         return 1; \
     }
 
+/* I had to go to a confessional after writing this */
 #define GVM_CONFIG_CHECK_NUMOPT(N) \
 	if (strcmp(option, GVM_CONFIG_##N) == 0) { \
 		N = _Generic((N), /* This is how to DRY, right? */ \

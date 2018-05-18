@@ -9,7 +9,16 @@
 #include "htslib/sam.h"
 
 
-// returns negative on error, otherwise if not
+/**
+ * Runs a SINGLE CIGAR OPERATION (`cigar_op`) from the read (`bam`)
+ *
+ * The most important takeaway from this function is how the `rfunc`
+ * parameter is used. It is passed in from gvm.c and does the
+ * aggregation into the metric tables. It is passed a report about the
+ * position that this function is analyzing.
+ *
+ * @return negative number to represent error, (probably) zero otherwise.
+ */
 int run_cigar(  bam1_t *bam,
 		struct ref_seq ref_seq_info,
 
@@ -130,6 +139,15 @@ int run_cigar(  bam1_t *bam,
 	return 0;
 }
 
+/**
+ * This function processes a read (`bam`) and calls the reporter
+ * function on each alignment "report". This function is decently
+ * commented so it should be fairly easy to understand what's going
+ * on. Note that gvm.c always passes `record_match` as `rfunc` and
+ * `record_aggregate` as `rfunc_alt`
+ *
+ * The most important thing is the double-call to `run_cigar`.
+ */
 int calc_alignments(	bam1_t *bam,
 			struct ref_seq ref_seq_info,
 			reporter_func rfunc,
