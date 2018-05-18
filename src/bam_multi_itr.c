@@ -233,6 +233,12 @@ struct bam_multi_itr *bmi_create(	const char *bam_files_fn,
 
 		i++;
 	}
+
+        if (bmi->nms == NULL) {
+                err_printf("no normal metrics file specified in bamlist\n");
+                goto fail;
+        }
+
 	fclose(blfp);
 
 	return bmi;
