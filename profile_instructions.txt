@@ -1,0 +1,23 @@
+1. make sure you have the latest gcc module loaded (6.1.0 probably)
+
+2. go to your gvm source tree, then cd src
+
+3. modify Makefile.am:
+
+OLD: gvm_CFLAGS = $(BASE_FLAGS) -g -O3
+NEW: gvm_CFLAGS = $(BASE_FLAGS) -g -pg -O3
+
+NOTE: leaving optimizations in will make it run quite a bit faster but
+      has a chance of not telling you what you need to know. In this
+      case, leaving it in for the first try is probably a good idea.
+
+4. build and run gvm as usual (check the compile commands for -pg to
+   make sure it generated the makefile correctly)
+
+   <path_to_gvm_executable> <options>
+
+5. if it exited with status 0, then run gprof:
+   gprof <path_to_gvm_executable>
+
+
+
