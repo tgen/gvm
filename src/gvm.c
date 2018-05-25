@@ -1441,7 +1441,9 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 			mbam = NULL;
 
 			if (!is_split_read(bam)) {
-				bmt = bmt_register(bmt, bam, &mbam, sample_index, &result);
+				bmi->itr_list[sample_index].bmt =
+					bmt_register(bmi->itr_list[sample_index].bmt, /* The pair table */ bam, &mbam, /* The pair */ &result /* Out: result value */);
+				
 				if (result == 1) continue;
 			}
 
@@ -1469,11 +1471,13 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		// }}}
 
 		context->mbam = NULL;
-		HASH_ITER(hh, bmt, left_behind, tmp) {
-			context->bam = left_behind->bam;
-			context->sample_index = left_behind->sample_index;
-			GVM_CALL_CALC_ALIGN(result);
-			GVM_CHECK_RESULT(result);
+		for (sample_index = 0; sample_index < bmi->num_iters; sample_index++) {
+			HASH_ITER(hh, bmt, left_behind, tmp) {
+				context->bam = left_behind->bam;
+				context->sample_index = sample_index;
+				GVM_CALL_CALC_ALIGN(result);
+				GVM_CHECK_RESULT(result);
+			}
 		}
 
 		flush_results(context, start, end + 1);
@@ -1485,7 +1489,6 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 		write_exon_line(context, start, end);
 	}
 
-	bmt_destroy(bmt);
 	bmi_cleanup(bmi);
 
 	//fflush(context->pos_file);

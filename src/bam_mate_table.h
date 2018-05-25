@@ -12,8 +12,6 @@ struct bam_mate_table {
 	char *qname; /* key */
 	bam1_t *bam; /* make sure to use bam_dup for this */
 
-	uint32_t sample_index;
-
 	UT_hash_handle hh;
 };
 
@@ -35,7 +33,6 @@ struct bam_mate_table {
 struct bam_mate_table *bmt_register(	struct bam_mate_table *bmt,
 					bam1_t *bam,
 					bam1_t **out,
-					uint32_t sample_index,
 					int *cont );
 
 void bmt_destroy(struct bam_mate_table *bmt);

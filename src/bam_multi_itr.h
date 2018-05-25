@@ -6,6 +6,7 @@
 #include <htslib/sam.h>
 #include <uthash.h>
 
+#include "bam_mate_table.h"
 #include "variant_table.h"
 #include "nmparse.h"
 
@@ -14,8 +15,9 @@ struct bam_single_itr {
 	hts_idx_t *idx;
 	hts_itr_t *itr;
 	bam_hdr_t *hdr;
-        struct nm_itr *nmi;
-        struct nm_tbl *nmt;
+	struct nm_itr *nmi;
+	struct nm_tbl *nmt;
+	struct bam_mate_table *bmt;
 	bam1_t *buf;
 	struct variant_table *vtable;
 

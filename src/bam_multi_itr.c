@@ -11,6 +11,7 @@
 #include "utils.h"
 #include "variant_table.h"
 #include "bam_multi_itr.h"
+#include "bam_mate_table.h"
 
 void bmi_cleanup(struct bam_multi_itr *bmi)
 {
@@ -26,6 +27,8 @@ void bmi_cleanup(struct bam_multi_itr *bmi)
 		destroy_variant_table(s->vtable);
 		s->vtable = NULL;
 		s->used = 1;
+
+		bmt_destroy(s->bmt);
 
 		if (bmi->nm_itr_list[i]) {
 			nm_cleanup(bmi->nm_itr_list[i]);
