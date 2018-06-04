@@ -233,6 +233,7 @@ struct bam_multi_itr *bmi_create(	const char *bam_files_fn,
 		bmi->itr_list[i].vtable = NULL;
 		bmi->itr_list[i].used = 1;
 		bmi->itr_list[i].nmi = bmi_nm_open(bmi, normal_base_path, chromosome);
+		bmi->itr_list[i].bmt = NULL; // Note: bmt_register does all the allocation
 
 		i++;
 	}

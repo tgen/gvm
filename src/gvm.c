@@ -1417,7 +1417,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	int result;
 
-	struct bam_mate_table *bmt = NULL, *left_behind, *tmp;
+	struct bam_mate_table *left_behind, *tmp;
 	int32_t sample_index;
 
 	struct extra_data ed;
@@ -1472,7 +1472,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 		context->mbam = NULL;
 		for (sample_index = 0; sample_index < bmi->num_iters; sample_index++) {
-			HASH_ITER(hh, bmt, left_behind, tmp) {
+			HASH_ITER(hh, bmi->itr_list[sample_index].bmt, left_behind, tmp) {
 				context->bam = left_behind->bam;
 				context->sample_index = sample_index;
 				GVM_CALL_CALC_ALIGN(result);
