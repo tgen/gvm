@@ -29,6 +29,7 @@ void bmi_cleanup(struct bam_multi_itr *bmi)
 		s->used = 1;
 
 		bmt_destroy(s->bmt);
+		s->bmt = NULL;
 
 		if (bmi->nm_itr_list[i]) {
 			nm_cleanup(bmi->nm_itr_list[i]);
