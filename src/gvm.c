@@ -473,6 +473,8 @@ void record_match(	struct context *context,
 	 * table that maps the variant to its details.
 	 */
 
+	vtentry->read_count++;
+
 	if (mq >= settings.min_mq && bq >= settings.min_bq) {
 
 		vtentry->read_count_pass++;
