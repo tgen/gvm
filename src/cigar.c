@@ -29,6 +29,7 @@ int run_cigar(  bam1_t *bam,
 		void *context,
 		void *extra_data)
 {
+	int result = 0;
 
 	uint32_t op_type, len, next_op_type;
 	uint8_t *seq_data = bam_get_seq(bam);
@@ -48,8 +49,15 @@ int run_cigar(  bam1_t *bam,
 		report.spos = *seq_index - 1;
 		report.data = int_to_b5base(bam_seqi(seq_data, *seq_index));
 		report.size = len;
-		rfunc(context, report, extra_data);
+
 		*base_offset += len;
+
+		// Check for a deletion as the first cigar op
+		if (op_type == BAM_CDEL && *seq_index == 0) {
+			result = -2;
+		} else {
+			rfunc(context, report, extra_data);
+		}
 		break;
 	case BAM_CINS:
 		report.align_type = at_ins;
@@ -133,10 +141,10 @@ int run_cigar(  bam1_t *bam,
 	case BAM_CBACK:
 		// I can't find any documentation on this cigar op so I'm
 		// just going to report it as an error.
-		return -1;
+		result = -1;
 	}
 
-	return 0;
+	return result;
 }
 
 /**
