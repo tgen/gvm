@@ -1033,6 +1033,9 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 
 		pop_entry = NULL;
 		get_bcf_entries(context, offset, &pop_entry);
+
+		// This table is used to average normal metrics over
+		// the samples
 		tbl = nm_tbl_create();
 
 		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
