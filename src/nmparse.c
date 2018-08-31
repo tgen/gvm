@@ -125,6 +125,12 @@ int nm_tbl_add(struct nm_tbl *nmt, struct nm_entry ent, int only_average)
 		HASH_ADD_INT(nmt->tbl, pos, heap_ent);
 	}
 
+	// If any are NaN, then we don't want to count them in the averages
+	if (isnan(ent.norm_read_depth) || isnan(ent.prob_map_err)
+	    || isnan(ent.read_pass) || isnan(ent.a_or_b)) {
+		return 1;
+	}
+
 	nmt->count++;
 
 	// update averages
