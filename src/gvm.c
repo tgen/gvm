@@ -130,6 +130,7 @@ struct settings {
 		 output_nmetrics:1,
 		 verbose:1,
 		 use_bed:1,
+		 no_extra_columns:1,
 		 dummy:27;
 
 	uint32_t min_mq;
@@ -801,7 +802,14 @@ uint32_t dump_variant_info(	struct context *context,
 #define VARIANT_TYPE_FORMAT  "%s"
 #define VARIANT_TYPE	     ""
 #endif
-	fprintf(f, VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g",
+	const char *format_string;
+	if (settings.no_extra_columns) {
+		format_string = VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g";
+	} else {
+		format_string = VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g";
+	}
+
+	fprintf(f, format_string,
 		VARIANT_TYPE,
 		read,
 		(double) vc->count_f / 2,
@@ -810,8 +818,8 @@ uint32_t dump_variant_info(	struct context *context,
 		(double) vc->total_mq / total,
 		vc->total_pmm / total,
 		(double) vc->total_read_pos / total,
-	        (double) vc->total_softclip / total,
-	        (double) vc->total_insert_size / total,
+		(double) vc->total_softclip / total,
+		(double) vc->total_insert_size / total,
 	        (double) vc->total_read_orientation / total);
 #undef VARIANT_TYPE_FORMAT
 #undef VARIANT_TYPE
@@ -1559,6 +1567,11 @@ int main(int argc, char **argv) // {{{
 		}
 
 		settings.use_bed = 0;
+	}
+
+	settings.no_extra_columns = 0;
+	if (args_info.no_extra_columns_given) {
+		settings.no_extra_columns = 1;
 	}
 
 	// Don't have to check if conf_arg or chr_arg are given because they're required
