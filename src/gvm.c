@@ -1179,7 +1179,12 @@ int config_read(const char *cfg_fn, struct settings *s)
 	/* START new code */
 	do {
 		if (!yaml_parser_parse(&parser, &event)) {
-			err_printf("Parser error %d\n", parser.error);
+			err_printf("error in %s at line %lu, col %lu: %s\n",
+			           cfg_fn,
+			           parser.problem_mark.line + 1,
+			           parser.problem_mark.column + 1,
+			           parser.problem);
+
 			result = 0;
 			goto done1;
 		}
