@@ -804,7 +804,7 @@ uint32_t dump_variant_info(	struct context *context,
 #endif
 	const char *format_string;
 	if (settings.no_extra_columns) {
-		format_string = VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g";
+		format_string = VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g\t%g";
 	} else {
 		format_string = VARIANT_TYPE_FORMAT "%d\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g\t%g";
 	}
