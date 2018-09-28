@@ -1612,6 +1612,11 @@ int main(int argc, char **argv) // {{{
 	}
 	verbose_fprintf(stderr, "\n");
 
+	if (settings.output_pos) {
+		verbose_fprintf(stderr, "extra pos columns: %s\n",
+				settings.no_extra_columns ? "no" : "yes");
+	}
+
 	if (!config_read(settings.conf_path, &settings)) {
 		return EXIT_FAILURE;
 	}
