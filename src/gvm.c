@@ -1577,9 +1577,9 @@ int main(int argc, char **argv) // {{{
 		settings.use_bed = 0;
 	}
 
-	settings.no_extra_columns = 0;
+	settings.no_extra_columns = 1;
 	if (args_info.no_extra_columns_given) {
-		settings.no_extra_columns = 1;
+		settings.no_extra_columns = 0;
 	}
 
 	// Don't have to check if conf_arg or chr_arg are given because they're required
