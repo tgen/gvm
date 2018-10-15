@@ -8,7 +8,6 @@
 
 #include "htslib/sam.h"
 
-
 /**
  * Runs a SINGLE CIGAR OPERATION (`cigar_op`) from the read (`bam`)
  *

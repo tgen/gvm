@@ -10,5 +10,3 @@ gvm_CPPFLAGS = -DHASH_FUNCTION=HASH_BER -I@abs_top_srcdir@/lib/uthash/src/
 
 clean-local:
 	rm -f $(srcdir)/gengetopt/cmdline.[ch]
-
-
