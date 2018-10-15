@@ -30,6 +30,7 @@ int bedf_forall_region_chr(	void *context,
 {
 	char chr[30];
 	uint32_t start, end;
+	uint32_t index;
 
 	FILE *bedf = fopen(bed_fn, "r");
 	if (!bedf) {
@@ -38,9 +39,11 @@ int bedf_forall_region_chr(	void *context,
 		return 0;
 	}
 
+	index = 0;
 	while (bedf_read_single(bedf, chr, sizeof(chr), &start, &end) != EOF) {
 		if (strcmp(chr, chromosome) == 0) {
-			reg_func(context, start, end);
+			reg_func(context, index, start, end);
+			index++;
 		}
 	}
 

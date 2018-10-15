@@ -167,6 +167,7 @@ struct context {
 	bam1_t *bam;
 	bam1_t *mbam;
 
+	uint32_t reg_index;
 	uint32_t reg_start; // BED region start
 	uint32_t reg_end;
 
@@ -880,10 +881,10 @@ void dump_nm_data(	struct context *context,
 	if (ent == NULL) {
 		err_printf("no normal metrics data for chromosome %s, offset %d\n",
 				settings.chromosome, offset);
-		fprintf(f, "nan\tnan\tnan\tnan");
+		fprintf(f, "nan\tnan\tnan\tnan\t");
 	} else {
 
-		fprintf(f, "%g\t%g\t%g\t%g",
+		fprintf(f, "%g\t%g\t%g\t%g\t",
 				ent->norm_read_depth,
 				ent->prob_map_err,
 				ent->read_pass,
@@ -980,6 +981,11 @@ void dump_vcounts(	struct context *context,
 	fprintf(f, "%g\t%g\t%d\t", a_pop_af, b_pop_af, cosm_count_real);
 
 	dump_nm_data(context, v->offset);
+
+	if (!settings.no_extra_columns) {
+		fprintf(f, "%d", context->reg_index);
+	}
+
 	fprintf(f, "\n");
 }
 
@@ -1552,7 +1558,7 @@ int open_out_files(struct context *context)
  * function in cigar.c to process the read by using the cigar string.
  */
 static
-int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
+int do_region(struct context *context, uint32_t index, uint32_t start, uint32_t end) // {{{
 {
 	verbose_fprintf(stderr, "--- region:  %d  to  %d  \n", start, end);
 
@@ -1570,6 +1576,7 @@ int do_region(struct context *context, uint32_t start, uint32_t end) // {{{
 
 	bam1_t *bam, *mbam;
 
+	context->reg_index = index;
 	context->reg_start = start;
 	context->reg_end = end;
 
@@ -1855,7 +1862,7 @@ int main(int argc, char **argv) // {{{
 				settings.chromosome,
 				regfn);
 	} else {
-		regfn(&context, cmdline_region_start, cmdline_region_end);
+		regfn(&context, 0, cmdline_region_start, cmdline_region_end);
 	}
 
 	// Cleanup {{{

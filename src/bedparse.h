@@ -8,7 +8,7 @@
 
 struct context;
 
-typedef int (*region_handle_func)(void *, uint32_t start, uint32_t end);
+typedef int (*region_handle_func)(void *, uint32_t index, uint32_t start, uint32_t end);
 
 int bedf_read_single(	FILE *bedf,
 			char *chr,
