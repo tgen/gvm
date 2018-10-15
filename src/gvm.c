@@ -489,8 +489,7 @@ void record_match(	struct context *context,
 		struct variant_counts *vcounts_table = vtentry->counts;
 
 		/* We use a zero'd out key holder to avoid any struct padding nonsense */
-		struct variant_counts key_holder;
-		memset(&key_holder, 0, sizeof(key_holder));
+		struct variant_counts key_holder = {0};
 		/* These are the only three values we're interested in */
 		key_holder.report.align_type = rep.align_type;
 		key_holder.report.pos = rep.pos;
@@ -732,6 +731,46 @@ no_af:
 #undef NORMALIZE_ALLELE
 
 
+void find_ab(struct variant_table **vtables, uint32_t n_samples,
+	     /* out */ struct variant_counts **a, struct variant_counts **b)
+{
+	uint32_t sample_idx;
+	uint32_t total, max, second_max;
+
+	struct variant_table *vt;
+	struct variant_counts *counts, *tmp;
+
+	max = 0;
+	second_max = 0;
+
+	*a = NULL;
+	*b = NULL;
+
+	for (sample_idx = 0; sample_idx < n_samples; sample_idx++) {
+		vt = vtables[sample_idx];
+		if (vt == NULL) continue;
+
+		HASH_ITER(hh, vt->counts, counts, tmp) {
+			total = counts->count_f + counts->count_r;
+			if (total > max) {
+				second_max = max;
+				*b = *a;
+				max = total;
+				*a = counts;
+			} else if (total > second_max) {
+				// Check if it's the same allele, just in a different sample.
+				// This case is ignored.
+				if (a != NULL && counts->report.data == (*a)->report.data) {
+					continue;
+				}
+				second_max = total;
+				*b = counts;
+			}
+		}
+	}
+
+}
+
 void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b)
 {
 	*a = v && v->a ? v->a : &dummy;
@@ -855,10 +894,19 @@ void dump_nm_data(	struct context *context,
 static
 void dump_vcounts(	struct context *context,
 			struct variant_table *v,
+			/* Global A/B alleles for this offset */
+			struct alignment_report global_a_report,
+			struct alignment_report global_b_report,
 			int max_delete_size	)
 {
 	FILE *f = context->pos_file;
-	struct variant_counts *a = NULL, *b = NULL;
+
+	// Used for zero-d out A/B in case of mismatch with global A/B
+	struct variant_counts dummy_a = {0}, dummy_b = {0};
+	dummy_a.report = global_a_report;
+	dummy_b.report = global_b_report;
+
+	struct variant_counts *local_a = NULL, *local_b = NULL;
 	struct ref_seq ref_seq_info = context->ref_seq_info;
 
 	float a_pop_af, b_pop_af;
@@ -868,8 +916,40 @@ void dump_vcounts(	struct context *context,
 
 	int32_t cosm_count_a, cosm_count_b, cosm_count_real;
 
-	get_ab(v, &a, &b);
-	assert(check_ab(a, b));
+	// Same zero'd out key holder technique here
+	struct variant_counts key_holder_a = {0};
+	struct variant_counts key_holder_b = {0};
+
+	// Search for a and b in `v`
+
+	// Prepare the key_holder for searching for a
+	key_holder_a.report.align_type = global_a_report.align_type;
+	key_holder_a.report.pos = global_a_report.pos;
+	key_holder_a.report.data = global_a_report.data;
+	key_holder_a.report.size = global_a_report.size;
+
+	// Perform search
+	HASH_FIND(hh, v->counts, &key_holder_a.report, sizeof(global_a_report), local_a);
+
+	// Handle not-found case
+	if (!local_a) {
+		local_a = &dummy_a;
+	}
+
+
+	// Repeat for b
+	key_holder_b.report.align_type = global_b_report.align_type;
+	key_holder_b.report.pos = global_b_report.pos;
+	key_holder_b.report.data = global_b_report.data;
+	key_holder_b.report.size = global_b_report.size;
+
+	// Perform search
+	HASH_FIND(hh, v->counts, &key_holder_b.report, sizeof(global_b_report), local_b);
+
+	// Handle not-found case
+	if (!local_b) {
+		local_b = &dummy_b;
+	}
 
 	ref_allele_partial =
 		collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
@@ -885,13 +965,13 @@ void dump_vcounts(	struct context *context,
 		v->read_count_pass,
 		ref_allele);
 
-	a_alt = dump_variant_info(context, f, a, ref_allele_partial);
+	a_alt = dump_variant_info(context, f, local_a, ref_allele_partial);
 	fprintf(f, "\t");
-	b_alt = dump_variant_info(context, f, b, ref_allele_partial);
+	b_alt = dump_variant_info(context, f, local_b, ref_allele_partial);
 	fprintf(f, "\t");
 
-	a_pop_af = a->pop_af;
-	b_pop_af = b->pop_af;
+	a_pop_af = local_a->pop_af;
+	b_pop_af = local_b->pop_af;
 
 	cosm_count_a = get_cosmic_count(v->offset, a_alt);
 	cosm_count_b = get_cosmic_count(v->offset, b_alt);
@@ -904,16 +984,22 @@ void dump_vcounts(	struct context *context,
 }
 
 static
-void dump_blank_vcounts(struct context *context, uint32_t offset, int max_delete_size)
+void dump_blank_vcounts(struct context *context,
+			uint32_t offset,
+			struct alignment_report global_a_report,
+			struct alignment_report global_b_report,
+			int max_delete_size)
 {
+
 	struct variant_table vt = {0};
 
 	vt.sample_index = context->sample_index;
 	vt.offset = offset;
 	vt.tid = context->tid;
 
-	dump_vcounts(context, &vt, max_delete_size);
-
+	dump_vcounts(context, &vt,
+		     global_a_report, global_b_report,
+		     max_delete_size);
 }
 
 static
@@ -947,7 +1033,7 @@ int get_delete_size(struct variant_counts *vc)
 }
 
 static
-int get_max_delete_size(struct context *context, uint32_t offset)
+int get_max_delete_size(struct variant_counts *a, struct variant_counts *b)
 {
 	// The purpose of this function is not immediately obvious.
 	// It calculates, for a given offset, the size of the largest
@@ -971,47 +1057,65 @@ int get_max_delete_size(struct context *context, uint32_t offset)
 	// A deletion must be known. That's what this function
 	// calculates.
 
-	uint32_t sample_idx;
-	struct variant_table *vtable;
-	struct variant_counts *counts, *tmp, *a, *b;
 
 	int max_delete_size = 0, max_of_ab;
-	int has_enough = 0;
+
+	max_of_ab = MAX(get_delete_size(a), get_delete_size(b));
+	if (max_of_ab > max_delete_size) max_delete_size = max_of_ab;
+
+	return max_delete_size;
+}
+
+static
+int has_enough(struct context *context, uint32_t offset)
+{
+	// The purpose of this function is to determine if, at
+	// `offset`, there are enough B's to include this offset in
+	// the output. Note: we don't use the global B's.
+
+	uint32_t sample_idx;
+	int enough = 0;
+	struct variant_counts *counts, *tmp;
+	struct variant_table *vtable;
 
 	for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
 		HASH_FIND_INT(context->bmi->itr_list[sample_idx].vtable, &offset, vtable);
 		if (vtable == NULL) continue;
 
-
-		a = vtable->a;
-		b = vtable->b;
-		max_of_ab = MAX(get_delete_size(a), get_delete_size(b));
-		if (max_of_ab > max_delete_size) max_delete_size = max_of_ab;
-
 		HASH_ITER(hh, vtable->counts, counts, tmp) {
 			if (is_mismatch(counts->report, context->ref_seq_info) &&
 					counts->count_f + counts->count_r >=
 						2 * settings.min_b_count) {
-				has_enough = 1;
+				enough = 1;
 			}
 		}
 	}
 
-	return has_enough ? max_delete_size : -1;
+	return enough;
 }
 
 static
 void flush_results(struct context *context, uint32_t begin, uint32_t end)
 {
-	int max_delete_size;
+	int max_delete_size, enough;
 	struct variant_table *vt, *v;
+	struct variant_counts *a, *b;
+
+	struct alignment_report global_a_report = {0};
+	struct alignment_report global_b_report = {0};
 
 	uint32_t offset, sample_idx;
+	uint32_t n_samples = context->bmi->num_iters;
 
 	struct nm_entry ent = {0};
 	struct nm_tbl *tbl;
 
 	int ploidy; // for normal metrics calculation
+
+	// Array to hold variant_tables for each sample_index at a
+	// certain position
+	struct variant_table **vtables;
+	vtables = malloc(n_samples * sizeof(*vtables));
 
 	bcf1_t *pop_entry;
 
@@ -1020,8 +1124,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 	if (end > context->reg_end + 1) end = context->reg_end + 1;
 
 	for (offset = begin; offset < end; offset++) {
-
-		max_delete_size = get_max_delete_size(context, offset);
+		enough = has_enough(context, offset);
 
 		// If normal metrics output isn't a concern and there
 		// is nothing of interest at this position, SKIP IT
@@ -1029,7 +1132,7 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		// For future reference, this check is crucial to the
 		// performance of this program, especially when only
 		// doing pos/exon output.
-		if (max_delete_size < 0 && !settings.output_nmetrics) continue;
+		if (!enough && !settings.output_nmetrics) continue;
 
 		pop_entry = NULL;
 		get_bcf_entries(context, offset, &pop_entry);
@@ -1038,11 +1141,28 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 		// the samples
 		tbl = nm_tbl_create();
 
-		for (sample_idx = 0; sample_idx < context->bmi->num_iters; sample_idx++) {
-			context->sample_index = sample_idx;
+		// First, populate vtables (array of variant_table for each
+		// sample at `offset`)
+		for (sample_idx = 0; sample_idx < n_samples; sample_idx++) {
 			vt = context->bmi->itr_list[sample_idx].vtable;
+			HASH_FIND_INT(vt, &offset, vtables[sample_idx]);
+		}
 
-			HASH_FIND_INT(vt, &offset, v);
+		// Now, determine A/B
+		find_ab(vtables, n_samples, &a, &b);
+		if (a != NULL) {
+			global_a_report = a->report;
+		}
+
+		if (b != NULL) {
+			global_b_report = b->report;
+		}
+
+		max_delete_size = get_max_delete_size(a, b);
+
+		for (sample_idx = 0; sample_idx < n_samples; sample_idx++) {
+			context->sample_index = sample_idx;
+			v = vtables[sample_idx];
 
 			if (v != NULL) {
 				init_dummy(v);
@@ -1052,9 +1172,15 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 			if (max_delete_size >= 0) {
 				if (settings.output_pos) {
 					if (v == NULL) {
-						dump_blank_vcounts(context, offset, max_delete_size);
+						dump_blank_vcounts(context, offset,
+								   global_a_report,
+								   global_b_report,
+								   max_delete_size);
 					} else {
-						dump_vcounts(context, v, max_delete_size);
+						dump_vcounts(context, v,
+							     global_a_report,
+							     global_b_report,
+							     max_delete_size);
 					}
 				}
 			}
@@ -1085,6 +1211,8 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 
 		nm_tbl_destroy(tbl);
 	}
+
+	free(vtables);
 
 }
 
