@@ -754,14 +754,19 @@ void find_ab(struct variant_table **vtables, uint32_t n_samples,
 		HASH_ITER(hh, vt->counts, counts, tmp) {
 			total = counts->count_f + counts->count_r;
 			if (total > max) {
-				second_max = max;
-				*b = *a;
+				// Only assign b to the old a if it's not the same allele
+				if (*a != NULL && counts->report.data != (*a)->report.data) {
+					second_max = max;
+					*b = *a;
+				}
 				max = total;
 				*a = counts;
-			} else if (total > second_max) {
+				continue;
+			}
+			if (total > second_max) {
 				// Check if it's the same allele, just in a different sample.
 				// This case is ignored.
-				if (a != NULL && counts->report.data == (*a)->report.data) {
+				if (*a != NULL && counts->report.data == (*a)->report.data) {
 					continue;
 				}
 				second_max = total;
