@@ -962,8 +962,7 @@ void dump_vcounts(	struct context *context,
 		local_b = &dummy_b;
 	}
 
-	ref_allele_partial =
-		collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
+	ref_allele_partial = collect_seqc(ref_seq_info, v->offset + 1, max_delete_size, 0);
 
 	ref_allele = seq_append2( char_to_b5base(ref_seq_get(ref_seq_info, v->offset)),
 				  ref_allele_partial );
