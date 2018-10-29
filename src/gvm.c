@@ -821,11 +821,11 @@ void populate_afs(struct context *context, bcf1_t *pop_entry, struct variant_tab
 
 static
 uint32_t dump_variant_info(	struct context *context,
-			FILE *f,
 			struct variant_counts *vc,
 			uint32_t ref_allele_partial)
 {
 
+	FILE *f = context->pos_file;
 	struct alignment_report report = vc->report;
 
 	double total = (vc->count_f + vc->count_r) / 2;
@@ -975,9 +975,9 @@ void dump_vcounts(	struct context *context,
 		v->read_count_pass,
 		ref_allele);
 
-	a_alt = dump_variant_info(context, f, local_a, ref_allele_partial);
+	a_alt = dump_variant_info(context, local_a, ref_allele_partial);
 	fprintf(f, "\t");
-	b_alt = dump_variant_info(context, f, local_b, ref_allele_partial);
+	b_alt = dump_variant_info(context, local_b, ref_allele_partial);
 	fprintf(f, "\t");
 
 	a_pop_af = local_a->pop_af;
