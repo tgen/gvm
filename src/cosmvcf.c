@@ -22,6 +22,15 @@ struct cosm_count_table {
 
 static struct cosm_count_table *cct;
 
+void destroy_cosmic_table()
+{
+	struct cosm_count_table *el, *tmp;
+	HASH_ITER(hh, cct, el, tmp) {
+		HASH_DEL(cct, el);
+		free(el);
+	}
+}
+
 int32_t get_cosmic_count(uint32_t pos, uint32_t b5alt)
 {
 	uint32_t key_len;

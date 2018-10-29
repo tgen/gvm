@@ -1881,12 +1881,14 @@ int main(int argc, char **argv) // {{{
 	fai_destroy(ref_idx);
 	bcf_sr_destroy(context.bcf_reader);
 
-	if (context->pos_file != NULL) {
-		fclose(context->pos_file);
+	destroy_cosmic_table();
+
+	if (context.pos_file != NULL) {
+		fclose(context.pos_file);
 	}
 
-	if (context->exon_file != NULL) {
-		fclose(context->exon_file);
+	if (context.exon_file != NULL) {
+		fclose(context.exon_file);
 	}
 #endif
 

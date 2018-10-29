@@ -77,6 +77,8 @@ void bmi_destroy(struct bam_multi_itr *bmi)
 
 	bmi_cleanup(bmi);
 
+	struct nm_itr_tbl *nms, *tmp;
+
 	struct bam_single_itr *s;
 	for (i = 0; i < bmi->num_iters; i++) {
 		s = &bmi->itr_list[i];
@@ -85,6 +87,11 @@ void bmi_destroy(struct bam_multi_itr *bmi)
 		if (s->f) sam_close(s->f);
 		if (s->buf) bam_destroy1(s->buf);
 		if (bmi->nm_itr_list[i]) nm_destroy(bmi->nm_itr_list[i]);
+	}
+
+	HASH_ITER(hh, bmi->nms, nms, tmp) {
+		HASH_DEL(bmi->nms, nms);
+		free(nms);
 	}
 
 	free(bmi->itr_list);
