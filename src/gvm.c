@@ -732,6 +732,26 @@ no_af:
 #undef NORMALIZE_ALLELE
 
 
+__attribute__((unused))
+int check_ab(struct variant_counts *a, struct variant_counts *b)
+{
+	(void) a; (void) b; // to avoid gcc warning
+
+	if (a == NULL || b == NULL) {
+		return 1;
+	}
+
+	/* If this fails, then a and b are both being set
+	 * but to the same thing which is bad */
+	assert((a == &dummy && b == &dummy) || a != b);
+
+	/* If this fails then a and b are not ordered correctly
+	 * and are most likely completely wrong. */
+	assert(a->count_f + a->count_r >= b->count_f + b->count_r);
+
+	return 1;
+}
+
 void find_ab(struct variant_table **vtables, uint32_t n_samples,
 	     /* out */ struct variant_counts **a, struct variant_counts **b)
 {
@@ -781,22 +801,6 @@ void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_c
 {
 	*a = v && v->a ? v->a : &dummy;
 	*b = v && v->b ? v->b : &dummy;
-}
-
-__attribute__((unused))
-int check_ab(struct variant_counts *a, struct variant_counts *b)
-{
-	(void) a; (void) b; // to avoid gcc warning
-
-	/* If this fails, then a and b are both being set
-	 * but to the same thing which is bad */
-	assert((a == &dummy && b == &dummy) || a != b);
-
-	/* If this fails then a and b are not ordered correctly
-	 * and are most likely completely wrong. */
-	assert(a->count_f + a->count_r >= b->count_f + b->count_r);
-
-	return 1;
 }
 
 static
