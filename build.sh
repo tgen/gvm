@@ -37,9 +37,9 @@ fi
 
 if [[ $debug ]]
 then
-	cflags="-O0 -DDEBUG -DHASH_DEBUG=1"
+	cflags="-g -Og -DDEBUG -DHASH_DEBUG=1"
 else
-	cflags="-DNDEBUG"
+	cflags="-O3 -DNDEBUG"
 fi
 
 makeflags="$makeflags CFLAGS=\"$cflags\""

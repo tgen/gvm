@@ -5,8 +5,11 @@ gvm_SOURCES = bam_macro_funcs.h bam_multi_itr.h bedparse.h nmparse.h nmcalc.h ut
 
 BASE_FLAGS = -Wall -Wextra -pedantic --std=c11
 
-gvm_CFLAGS = $(BASE_FLAGS) -g -O3
+gvm_CFLAGS = $(BASE_FLAGS)
 gvm_CPPFLAGS = -DHASH_FUNCTION=HASH_BER -I@abs_top_srcdir@/lib/uthash/src/ 
+
+gvm-cosmvcf.o: cosmvcf.c cosmvcf.h
+	$(CC) $(CFLAGS:-Og=) $(gvm_CFLAGS:-Og=) -O3 $(gvm_CPPFLAGS) $< -c -o $@
 
 clean-local:
 	rm -f $(srcdir)/gengetopt/cmdline.[ch]
