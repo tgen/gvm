@@ -821,8 +821,9 @@ void populate_afs(struct context *context, bcf1_t *pop_entry, struct variant_tab
 
 static
 uint32_t dump_variant_info(	struct context *context,
-			struct variant_counts *vc,
-			uint32_t ref_allele_partial)
+				struct variant_counts *vc,
+				uint32_t max_delete_size,
+				uint32_t ref_allele_partial)
 {
 
 	FILE *f = context->pos_file;
@@ -837,7 +838,7 @@ uint32_t dump_variant_info(	struct context *context,
 		read = seq_append2(report.data, ref_allele_partial);
 		break;
 	case at_del:
-		read = char_to_b5base(ref_seq_get(context->ref_seq_info, report.pos));
+		read = collect_seqc(context->ref_seq_info, report.pos, max_delete_size - report.size + 1, 0);
 		break;
 	case at_sclip:
 		assert(0 /* soft clip should never be reported! */);
@@ -975,9 +976,9 @@ void dump_vcounts(	struct context *context,
 		v->read_count_pass,
 		ref_allele);
 
-	a_alt = dump_variant_info(context, local_a, ref_allele_partial);
+	a_alt = dump_variant_info(context, local_a, max_delete_size, ref_allele_partial);
 	fprintf(f, "\t");
-	b_alt = dump_variant_info(context, local_b, ref_allele_partial);
+	b_alt = dump_variant_info(context, local_b, max_delete_size, ref_allele_partial);
 	fprintf(f, "\t");
 
 	a_pop_af = local_a->pop_af;
