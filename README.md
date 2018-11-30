@@ -25,6 +25,14 @@ $ source ./setup.sh
 will load the modules that satisfy these dependencies. If not, you have to
 install them yourself.
 
+#### Mac OS X
+
+You can install the dependencies on OS X with [homebrew](https://brew.sh).
+
+```
+$ brew install gengetopt gsl htslib libyaml
+```
+
 ### Cloning
 
 Make sure to use `--recursive` when cloning.
