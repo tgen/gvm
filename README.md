@@ -10,7 +10,7 @@ Make sure the following are installed on your system:
 * `htslib` (>=1.4.1)
 * `libyaml`
 * `gsl` (>=2.4)
-* `gengetopts` (for building)
+* `gengetopt` (for building)
 
 The following dependencies are bundled as submodules:
 
