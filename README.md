@@ -37,6 +37,10 @@ $ brew install gengetopt gsl htslib libyaml
 
 Make sure to use `--recursive` when cloning.
 
+```
+$ git clone --recursive git@github.com:tgen/gvm
+```
+
 ### Building
 
 #### Scripted
