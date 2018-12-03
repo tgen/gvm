@@ -1669,7 +1669,7 @@ int do_region(struct context *context, uint32_t index, uint32_t start, uint32_t 
 			if (!is_split_read(bam)) {
 				bmi->itr_list[sample_index].bmt =
 					bmt_register(bmi->itr_list[sample_index].bmt, /* The pair table */ bam, &mbam, /* The pair */ &result /* Out: result value */);
-				
+
 				if (result == 1) continue;
 			}
 
