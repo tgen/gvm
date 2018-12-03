@@ -891,15 +891,55 @@ void dump_nm_data(	struct context *context,
 	if (ent == NULL) {
 		err_printf("no normal metrics data for chromosome %s, offset %d\n",
 				settings.chromosome, offset);
-		fprintf(f, "nan\tnan\tnan\tnan\t");
+		fprintf(f, "\tnan\tnan\tnan\tnan");
 	} else {
 
-		fprintf(f, "%g\t%g\t%g\t%g\t",
+		fprintf(f, "\t%g\t%g\t%g\t%g",
 				ent->norm_read_depth,
 				ent->prob_map_err,
 				ent->read_pass,
 				ent->a_or_b);
 	}
+}
+
+static const char* column_names[] = {
+   // General information
+   "Chr", "Pos", "ReadDepth", "ReadDepthPass", "Ref",
+
+   // Metrics for A allele
+   "A", "ACountF", "ACountR", "AmeanBQ", "AmeanMQ", "AmeanPMM", "AmeanReadPos",
+   "AMeanSC", "AMeanIS", "AMeanRO",
+
+   // Metrics for B allele
+   "B", "BCountF", "BCountR", "BmeanBQ", "BmeanMQ", "BmeanPMM", "BmeanReadPos",
+   "BMeanSC", "BMeanIS", "BMeanRO",
+
+   // More general information
+   "ApopAF", "BpopAF", "CosmicCount", "ControlRD", "PosMapQC", "perReadPass",
+   "abFrac", "BedIndex",
+};
+
+static
+void write_pos_header(struct context *context)
+{
+	assert(settings.output_pos); // sanity check
+
+	uint32_t sample_idx, column_idx;
+	uint32_t n_samples, n_columns;
+	FILE *f;
+
+	n_samples = context->bmi->num_iters;
+	n_columns = sizeof(column_names) / sizeof(column_names[0]);
+	f = context->pos_file;
+
+	for (sample_idx = 0; sample_idx < n_samples; sample_idx++) {
+		for (column_idx = 0; column_idx < n_columns; column_idx++) {
+			fprintf(f, "%s_%i\t", column_names[column_idx], sample_idx);
+		}
+	}
+
+	fprintf(f, "\n");
+
 }
 
 static
@@ -967,8 +1007,12 @@ void dump_vcounts(	struct context *context,
 	ref_allele = seq_append2( char_to_b5base(ref_seq_get(ref_seq_info, v->offset)),
 				  ref_allele_partial );
 
-	fprintf(f, "%d\t%d\t%d\t%d\t%d\t%d\t",
-		v->sample_index + 1,
+	// If we are using the old output, print the sample index
+	if (settings.no_extra_columns) {
+		fprintf(f, "%d\t", v->sample_index + 1);
+	}
+
+	fprintf(f, "%d\t%d\t%d\t%d\t%d\t",
 		v->tid + 1, /* chromosomes are 0-indexed apparently */
 		v->offset,
 		v->read_count,
@@ -987,15 +1031,19 @@ void dump_vcounts(	struct context *context,
 	cosm_count_b = get_cosmic_count(v->offset, b_alt);
 	cosm_count_real = MAX(0, MAX(cosm_count_a, cosm_count_b));
 
-	fprintf(f, "%g\t%g\t%d\t", a_pop_af, b_pop_af, cosm_count_real);
+	// NOTE: no trailing tab for this part.
+	fprintf(f, "%g\t%g\t%d", a_pop_af, b_pop_af, cosm_count_real);
 
 	dump_nm_data(context, v->offset);
 
 	if (!settings.no_extra_columns) {
-		fprintf(f, "%d", context->reg_index);
+		fprintf(f, "\t%d", context->reg_index);
 	}
 
-	fprintf(f, "\n");
+	// The newline is necessary if we are not printing extra columns
+	if (settings.no_extra_columns) {
+		fprintf(f, "\n");
+	}
 }
 
 static
@@ -1197,6 +1245,15 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 							     global_b_report,
 							     max_delete_size);
 					}
+
+					// The tab between samples. Only needed
+					// if we're using the new format.
+					if (!settings.no_extra_columns &&
+							sample_idx < n_samples - 1) {
+						fprintf(context->pos_file, "\t");
+
+					}
+
 				}
 			}
 
@@ -1214,6 +1271,12 @@ void flush_results(struct context *context, uint32_t begin, uint32_t end)
 					v = NULL;
 				}
 			}
+		}
+
+		// If we're generating pos files, terminate the current line,
+		// but only if we're NOT in the old mode!
+		if (settings.output_pos && !settings.no_extra_columns) {
+			fprintf(context->pos_file, "\n");
 		}
 
 		if (settings.output_nmetrics) {
@@ -1850,6 +1913,11 @@ int main(int argc, char **argv) // {{{
 
 	if (open_out_files(&context) != 0) {
 		return EXIT_FAILURE;
+	}
+
+	// Print out pos header, if necessary
+	if (settings.output_pos && !settings.no_extra_columns) {
+		write_pos_header(&context);
 	}
 
 	// Context initialization {{{
