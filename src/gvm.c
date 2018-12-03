@@ -868,7 +868,7 @@ uint32_t dump_variant_info(	struct context *context,
 		(double) vc->total_mq / total,
 		vc->total_pmm / total,
 		(double) vc->total_read_pos / total,
-		(double) vc->total_softclip / total,
+		(double) vc->total_softclip / total, /* Extra columns start here */
 		(double) vc->total_insert_size / total,
 	        (double) vc->total_read_orientation / total);
 #undef VARIANT_TYPE_FORMAT
