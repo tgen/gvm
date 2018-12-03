@@ -10,7 +10,7 @@ Make sure the following are installed on your system:
 * `htslib` (>=1.4.1)
 * `libyaml`
 * `gsl` (>=2.4)
-* `gengetopts` (for building)
+* `gengetopt` (for building)
 
 The following dependencies are bundled as submodules:
 
@@ -25,9 +25,21 @@ $ source ./setup.sh
 will load the modules that satisfy these dependencies. If not, you have to
 install them yourself.
 
+#### Mac OS X
+
+You can install the dependencies on OS X with [homebrew](https://brew.sh).
+
+```
+$ brew install gengetopt gsl htslib libyaml
+```
+
 ### Cloning
 
 Make sure to use `--recursive` when cloning.
+
+```
+$ git clone --recursive git@github.com:tgen/gvm
+```
 
 ### Building
 
