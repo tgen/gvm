@@ -4,7 +4,6 @@
 #include "nmcalc.h"
 
 void get_ab(struct variant_table *v, struct variant_counts **a, struct variant_counts **b);
-int check_ab(struct variant_counts *a, struct variant_counts *b);
 
 // Convenience function to mimic MATLAB function
 static inline double binopdf(unsigned int x, unsigned int n, double p) {
@@ -33,7 +32,6 @@ void nmcalc(struct context *context,
 	struct variant_counts *a, *b;
 
 	get_ab(v, &a, &b);
-	assert(check_ab(a, b));
 
 	// Initialization of useful variables
 

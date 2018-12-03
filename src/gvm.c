@@ -731,8 +731,7 @@ no_af:
 }
 #undef NORMALIZE_ALLELE
 
-
-__attribute__((unused))
+static __attribute__((unused))
 int check_ab(struct variant_counts *a, struct variant_counts *b)
 {
 	(void) a; (void) b; // to avoid gcc warning
@@ -752,6 +751,7 @@ int check_ab(struct variant_counts *a, struct variant_counts *b)
 	return 1;
 }
 
+static
 void find_ab(struct variant_table **vtables, uint32_t n_samples,
 	     /* out */ struct variant_counts **a, struct variant_counts **b)
 {
@@ -1257,6 +1257,7 @@ int is_split_read(bam1_t *bam)
 // Configuration reading {{{
 // Many thanks to https://www.wpsoftware.net/andrew/pages/libyaml.html
 
+static
 int config_try_set_option(char *option, char *value, struct settings *s)
 {
 	uint32_t min_mq, min_bq, default_mq, default_bq, min_b_count;
