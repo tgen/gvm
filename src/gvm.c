@@ -1915,11 +1915,6 @@ int main(int argc, char **argv) // {{{
 		return EXIT_FAILURE;
 	}
 
-	// Print out pos header, if necessary
-	if (settings.output_pos && !settings.no_extra_columns) {
-		write_pos_header(&context);
-	}
-
 	// Context initialization {{{
 	context.ref_seq_info = ref_seq_info;
 	context.bmi = bmi;
@@ -1930,6 +1925,11 @@ int main(int argc, char **argv) // {{{
 		err_printf("warning: no bam files loaded\n");
 	}
 	// }}}
+
+	// Print out pos header, if necessary
+	if (settings.output_pos && !settings.no_extra_columns) {
+		write_pos_header(&context);
+	}
 
 	regfn = (region_handle_func) do_region;
 
