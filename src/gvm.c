@@ -752,6 +752,13 @@ int check_ab(struct variant_counts *a, struct variant_counts *b)
 }
 
 static
+int check_equal_reports(struct alignment_report a, struct alignment_report b)
+{
+	return a.align_type == b.align_type && a.pos == b.pos \
+			     && a.data == b.data && a.size == b.size;
+}
+
+static
 void find_ab(struct variant_table **vtables, uint32_t n_samples,
 	     /* out */ struct variant_counts **a, struct variant_counts **b)
 {
@@ -775,7 +782,7 @@ void find_ab(struct variant_table **vtables, uint32_t n_samples,
 			total = counts->count_f + counts->count_r;
 			if (total > max) {
 				// Only assign b to the old a if it's not the same allele
-				if (*a != NULL && counts->report.data != (*a)->report.data) {
+				if (*a != NULL && !check_equal_reports(counts->report, (*a)->report)) {
 					second_max = max;
 					*b = *a;
 				}
@@ -786,7 +793,7 @@ void find_ab(struct variant_table **vtables, uint32_t n_samples,
 			if (total > second_max) {
 				// Check if it's the same allele, just in a different sample.
 				// This case is ignored.
-				if (*a != NULL && counts->report.data == (*a)->report.data) {
+				if (*a != NULL && check_equal_reports(counts->report, (*a)->report)) {
 					continue;
 				}
 				second_max = total;
