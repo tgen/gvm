@@ -12,7 +12,7 @@ int bedf_read_single(	FILE *bedf,
 {
 	int dummy;
 
-	char line[1024];
+	char line[4096];
 	char format[128];
 
 	if (!fgets(line, sizeof(line), bedf)) {
